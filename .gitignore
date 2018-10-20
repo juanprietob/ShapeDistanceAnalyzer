@@ -1,0 +1,13 @@
+
+### This project ###
+Resources/Utilities/
+
+### macOS ###
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
