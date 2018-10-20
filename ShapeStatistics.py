@@ -8,10 +8,8 @@ import csv
 class ShapeStatisticsLogic:
 	def __init__(self):
 		self.A_path=None
-		self.A_reader=vtk.vtkPolyDataReader()
 
 		self.B_path=None
-		self.B_reader=vtk.vtkPolyDataReader()
 
 		self.distancefilter=vtk.vtkDistancePolyDataFilter()
 
@@ -21,6 +19,7 @@ class ShapeStatisticsLogic:
 	#the file should be a .vtk file
 	def SetA(self,file_path):
 		self.A_path=file_path
+		self.A_reader=vtk.vtkPolyDataReader()
 		self.A_reader.SetFileName(file_path)
 		self.A_reader.Update()
 
@@ -33,6 +32,7 @@ class ShapeStatisticsLogic:
 	#the file should be a .vtk file
 	def SetB(self,file_path):
 		self.B_path=file_path
+		self.B_reader=vtk.vtkPolyDataReader()
 		self.B_reader.SetFileName(file_path)
 		self.B_reader.Update()
 

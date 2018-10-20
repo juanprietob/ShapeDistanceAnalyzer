@@ -49,7 +49,6 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
 
         # Global Variables
         self.logic = ShapeStatsLogic(self)
-        self.logic.generateLUT()
 
         self.current_file_A = None
         self.current_file_B = None
@@ -97,14 +96,14 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.pushButton_compute=self.logic.get('pushButton_compute')
         self.pushButton_save=self.logic.get('pushButton_save')
 
-        self.initializeWidgetConfiguration()
-
-    #initialize all the widgets configurations at their default state
-    def initializeWidgetConfiguration(self):
         #################################################
         # ---- Widget configuration and connection ---- #
         #################################################
 
+        self.initializeWidgetConfiguration()
+
+    #initialize all the widgets configurations at their default state
+    def initializeWidgetConfiguration(self):
         #Shape Selection
         self.pathLineEdit_fileA.setCurrentPath(' ')
         self.pathLineEdit_fileA.connect('currentPathChanged(const QString)', self.onLoadFileA)
@@ -306,6 +305,8 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         self.interface = interface
 
         self.stats=ShapeStatistics.ShapeStatisticsLogic()
+
+        self.generateLUT()
 
         self.stats_dict=dict()
 
@@ -584,20 +585,22 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         model_display.AutoScalarRangeOff()
         model_display.SetScene(slicer.mrmlScene)
         model_display.SetName("Display "+name)
+
         #create transform node
         transform=vtk.vtkTransform()
         transform.Translate(initial_pos_x,0,0)
         transform_node=slicer.vtkMRMLTransformNode()
         transform_node.SetName("Translation "+name)
         transform_node.SetAndObserveTransformToParent(transform)
+
         #Add Nodes to Slicer
         slicer.mrmlScene.AddNode(transform_node)
         slicer.mrmlScene.AddNode(model_display)
         slicer.mrmlScene.AddNode(shape_node)
-        
+
+        #Link nodes
         shape_node.SetAndObserveTransformNodeID(transform_node.GetID())
         shape_node.SetAndObserveDisplayNodeID(model_display.GetID())
-
 
     #function to delete a model node and his associated model display node
     #using the name used during their creation
