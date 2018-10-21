@@ -55,11 +55,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
 
         self.result_labels = [[]]
 
-
-        #############################################
-        # ---- Loading interface from .ui file ---- #
-        #############################################
-
+        #Load the interface from .ui file
         self.moduleName = 'ShapeStats'
         scriptedModulesPath = eval('slicer.modules.%s.path' % self.moduleName.lower())
         scriptedModulesPath = os.path.dirname(scriptedModulesPath)
@@ -67,10 +63,13 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.widget = slicer.util.loadUI(path)
         self.layout.addWidget(self.widget)
 
-        #############################
-        # ---- Widget recovery ---- #
-        #############################
+        #get, configure and connect widgets
+        self.getWidgets()
+        self.defaultConfigWidget()
+        self.connectWidget()
 
+    #get all needed widget from the .ui file that describe the module interface
+    def getWidgets(self):
         #Shape Selection
         self.pathLineEdit_fileA=self.logic.get('pathLineEdit_fileA')
         self.pathLineEdit_fileB=self.logic.get('pathLineEdit_fileB')
@@ -96,20 +95,11 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.pushButton_compute=self.logic.get('pushButton_compute')
         self.pushButton_save=self.logic.get('pushButton_save')
 
-        #################################################
-        # ---- Widget configuration and connection ---- #
-        #################################################
-
-        self.initializeWidgetConfiguration()
-
     #initialize all the widgets configurations at their default state
-    def initializeWidgetConfiguration(self):
+    def defaultConfigWidget(self):
         #Shape Selection
         self.pathLineEdit_fileA.setCurrentPath(' ')
-        self.pathLineEdit_fileA.connect('currentPathChanged(const QString)', self.onLoadFileA)
-
         self.pathLineEdit_fileB.setCurrentPath(' ')
-        self.pathLineEdit_fileB.connect('currentPathChanged(const QString)', self.onLoadFileB)
 
         #Parameters
         self.spinBox_bins.setMinimum(5)
@@ -127,7 +117,6 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.horizontalSlider_translation.setMaximum(500)
         self.horizontalSlider_translation.setValue(0)
         self.horizontalSlider_translation.setDisabled(True)
-        self.horizontalSlider_translation.connect('valueChanged(int)',self.onTranslation)
 
         #Colors
         self.doubleSpinBox_minimum.setDisabled(True)
@@ -142,14 +131,31 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         #Results
         self.comboBox_mode.clear()
         self.comboBox_mode.setDisabled(True)
+
+        #Buttons
+        self.pushButton_compute.setDisabled(True)
+
+        self.pushButton_save.setDisabled(True)
+
+    #connect widgets signal to their corresponding slot 
+    def connectWidget(self):
+        #Shape Selection
+        self.pathLineEdit_fileA.connect('currentPathChanged(const QString)', self.onLoadFileA)
+        self.pathLineEdit_fileB.connect('currentPathChanged(const QString)', self.onLoadFileB)
+
+        #Parameters
+ 
+        #Translation
+        self.horizontalSlider_translation.connect('valueChanged(int)',self.onTranslation)
+
+        #Colors
+
+        #Results
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
 
         #Buttons
         self.pushButton_compute.connect('clicked()', self.onCompute)
-        self.pushButton_compute.setDisabled(True)
-
         self.pushButton_save.connect('clicked()', self.onSave)
-        self.pushButton_save.setDisabled(True)
 
     # function called each time that the user "enter" in Diagnostic Index interface
     def enter(self):
@@ -171,7 +177,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         print('close scene')
         #self.logic.deleteAll3DVisualisationNodes()
         #self.logic.delete2DVisualisationNodes()
-        self.initializeWidgetConfiguration()
+        self.defaultConfigWidget()
 
     #Action to do when file A is setted
     def onLoadFileA(self,fileA_path):
@@ -179,9 +185,9 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         if self.logic.checkExtension(fileA_path,'.vtk'):
             print('Loading file A ...',end=' ')
             self.current_file_A=fileA_path
-            self.logic.stats.SetA(fileA_path)
+            self.logic.stats.Set('A',fileA_path)
             pos_x=self.horizontalSlider_translation.value
-            self.logic.showA(posX=pos_x)
+            self.logic.show('A',color=(1,0,0),posX=pos_x)
             print('Done!')
 
             if self.logic.stats.IsReady():
@@ -198,9 +204,9 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         if self.logic.checkExtension(fileB_path,'.vtk'):
             print('Loading file B ...',end=' ')
             self.current_file_B=fileB_path
-            self.logic.stats.SetB(fileB_path)
+            self.logic.stats.Set('B',fileB_path)
             pos_x=self.horizontalSlider_translation.value
-            self.logic.showB(posX=-pos_x)
+            self.logic.show('B',color=(0,0,1),posX=-pos_x)
             print('Done!')
 
             if self.logic.stats.IsReady():
@@ -317,7 +323,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #                   Common Functions                   #
     #------------------------------------------------------#
 
-    #Function to recovery a widget in the .ui file
+    #Function to get a widget in the .ui file that describe the module interface
     def get(self, objectName):
         
         return slicer.util.findChild(self.interface.widget, objectName)
@@ -552,23 +558,19 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #            Shapes visualization Functions            #
     #------------------------------------------------------#
 
-    #function to show in slicer mrml scene the shape A
-    #color is red
+    #function to show in slicer mrml scene the shape identified by ID
+    #the color parameter define the color of the shape
     #shape is translated in the x axis by posX
-    def showA(self,posX=0):
-        self.delete3DVisualisationNodes(self.shapeA_name)
-        polydata = self.stats.getShapeAPolydata()
-        self.autoOrientNormals(polydata)
-        self.generate3DVisualisationNode(polydata,self.shapeA_name,color=(0.9,0.1,0.1),initial_pos_x=posX)
+    def show(self,ID,color=(1,1,1),posX=0):
+        if ID == 'A':
+            name=self.shapeA_name
+        if ID == 'B':
+            name=self.shapeB_name
 
-    #function to show in slicer mrml scene the shape B
-    #color is blue
-    #shape is translated in the x axis by posX
-    def showB(self,posX=0):
-        self.delete3DVisualisationNodes(self.shapeB_name)
-        polydata = self.stats.getShapeBPolydata()
+        self.delete3DVisualisationNodes(name)
+        polydata = self.stats.getPolydata(ID)
         self.autoOrientNormals(polydata)
-        self.generate3DVisualisationNode(polydata,self.shapeB_name,color=(0.1,0.1,0.9),initial_pos_x=posX)
+        self.generate3DVisualisationNode(polydata,name,color=color,initial_pos_x=posX)
 
     #function that create a model node and his associated model display and transform node
     #The Nodes are also added to slicer's mrmlScene
@@ -705,7 +707,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         if mode == 'A->B':
             #set polydata scalars
             distance = self.stats_dict[mode]['distances'][0]
-            polydata=self.stats.getShapeAPolydata()
+            polydata=self.stats.getPolydata('A')
             self.setPolyDataDistanceScalars(polydata,distance)
 
             #Set model node to use our LUT and set the range
@@ -718,7 +720,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         if mode == 'B->A':
             #set polydata scalars
             distance = self.stats_dict[mode]['distances'][0]
-            polydata=self.stats.getShapeBPolydata()
+            polydata=self.stats.getPolydata('B')
             self.setPolyDataDistanceScalars(polydata,distance)
 
             #Set model node to use our LUT and set the range
@@ -731,7 +733,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         if mode == 'A<->B':
             #set polydata scalars
             distance = self.stats_dict[mode]['distances'][0]
-            polydata=self.stats.getShapeAPolydata()
+            polydata=self.stats.getPolydata('A')
             self.setPolyDataDistanceScalars(polydata,distance)
 
             #Set model node to use our LUT and set the range
@@ -745,7 +747,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
             #A->B
             #set polydata scalars
             distance = self.stats_dict[mode]['distances'][0]
-            polydata=self.stats.getShapeAPolydata()
+            polydata=self.stats.getPolydata('A')
             self.setPolyDataDistanceScalars(polydata,distance)
 
             #Set model node to use our LUT and set the range
@@ -754,7 +756,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
             #B->A
             #set polydata scalars
             distance = self.stats_dict[mode]['distances'][1]
-            polydata=self.stats.getShapeBPolydata()
+            polydata=self.stats.getPolydata('B')
             self.setPolyDataDistanceScalars(polydata,distance)
 
             #Set model node to use our LUT and set the range

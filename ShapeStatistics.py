@@ -11,35 +11,30 @@ class ShapeStatisticsLogic:
 
 		self.B_path=None
 
-		self.distancefilter=vtk.vtkDistancePolyDataFilter()
 
-		self.enclosed_points=vtk.vtkSelectEnclosedPoints()
-	
-	#set file A
-	#the file should be a .vtk file
-	def SetA(self,file_path):
-		self.A_path=file_path
-		self.A_reader=vtk.vtkPolyDataReader()
-		self.A_reader.SetFileName(file_path)
-		self.A_reader.Update()
+	#load a .vtk file
+	#the ID parameter define if the file is loaded as the A shape or the B shape
+	#create a polydata reader in self.A_reader or self.B_reader
+	def Set(self,ID,file_path):
+		reader=vtk.vtkPolyDataReader()
+		reader.SetFileName(file_path)
+		reader.Update()
 
-	#function that return the polydata assocciated to the file A
-	def getShapeAPolydata(self):
+		if ID =='A':
+			self.A_path=file_path
+			self.A_reader=reader
 
-		return self.A_reader.GetOutput()
-	
-	#set file B
-	#the file should be a .vtk file
-	def SetB(self,file_path):
-		self.B_path=file_path
-		self.B_reader=vtk.vtkPolyDataReader()
-		self.B_reader.SetFileName(file_path)
-		self.B_reader.Update()
+		if ID =='B':
+			self.B_path=file_path
+			self.B_reader=reader
 
-	#function that return the polydata assocciated to the file B
-	def getShapeBPolydata(self):
+	#function that return the polydata assocciated to shape identified by ID
+	def getPolydata(self,ID):
+		if ID =='A':
+			return self.A_reader.GetOutput()
 
-		return self.B_reader.GetOutput()
+		if ID =='B':
+			return self.B_reader.GetOutput()
 
 	#return True if both file A and file B have been set
 	#and if the computation is ready to be launched
@@ -55,17 +50,19 @@ class ShapeStatisticsLogic:
 	#inverse=False : A->B ,inverse=True : B->A
 	#return a numpy array 
 	def ClosestPoint(self,signed=True,inverse=False):
+		distancefilter=vtk.vtkDistancePolyDataFilter()
+
 		if inverse:
-			self.distancefilter.SetInputData(1,self.A_reader.GetOutput())
-			self.distancefilter.SetInputData(0,self.B_reader.GetOutput())
+			distancefilter.SetInputData(1,self.A_reader.GetOutput())
+			distancefilter.SetInputData(0,self.B_reader.GetOutput())
 		else:
-			self.distancefilter.SetInputData(0,self.A_reader.GetOutput())
-			self.distancefilter.SetInputData(1,self.B_reader.GetOutput())
+			distancefilter.SetInputData(0,self.A_reader.GetOutput())
+			distancefilter.SetInputData(1,self.B_reader.GetOutput())
 
-		self.distancefilter.SetSignedDistance(signed)
-		self.distancefilter.Update()
+		distancefilter.SetSignedDistance(signed)
+		distancefilter.Update()
 
-		datavtkfloat=self.distancefilter.GetOutput().GetPointData().GetScalars()
+		datavtkfloat=distancefilter.GetOutput().GetPointData().GetScalars()
 		dist = vtk_to_numpy(datavtkfloat)
 
 		return dist
@@ -93,18 +90,19 @@ class ShapeStatisticsLogic:
 			return dist
 
 		else:
+			enclosed_points=vtk.vtkSelectEnclosedPoints()
 			if inverse:
-			    self.enclosed_points.SetInputData(self.B_reader.GetOutput())
-			    self.enclosed_points.SetSurfaceData(self.A_reader.GetOutput())
+			    enclosed_points.SetInputData(self.B_reader.GetOutput())
+			    enclosed_points.SetSurfaceData(self.A_reader.GetOutput())
 			else:
-			    self.enclosed_points.SetInputData(self.A_reader.GetOutput())
-			    self.enclosed_points.SetSurfaceData(self.B_reader.GetOutput())
+			    enclosed_points.SetInputData(self.A_reader.GetOutput())
+			    enclosed_points.SetSurfaceData(self.B_reader.GetOutput())
 
-			self.enclosed_points.SetTolerance(tolerance)
-			self.enclosed_points.Update()
+			enclosed_points.SetTolerance(tolerance)
+			enclosed_points.Update()
 
 			for i in range(len(dist)):
-				if self.enclosed_points.IsInside(i):
+				if enclosed_points.IsInside(i):
 					dist[i]=-dist[i]
 		    
 			

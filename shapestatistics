@@ -48,8 +48,8 @@ def main():
 
 	valmet=ShapeStatistics.ShapeStatisticsLogic()
 
-	valmet.SetA(fileA)
-	valmet.SetB(fileB)
+	valmet.Set('A',fileA)
+	valmet.Set('B',fileB)
 
 	bins=args.bins
 
@@ -118,7 +118,7 @@ def main():
 	correspondence=True
 	signed=False
 
-	mode='A->B'
+	mode='A<->B'
 	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
 
 	stats_list.append(stats_dict0)

@@ -73,8 +73,8 @@ class TestValmet(unittest.TestCase):
 		goodResults='./Resources/Tests/TestValues.csv'
 
 		valmet=ShapeStatistics.ShapeStatisticsLogic()
-		valmet.SetA(fileA)
-		valmet.SetB(fileB)
+		valmet.Set('A',fileA)
+		valmet.Set('B',fileB)
 
 		with open(goodResults, newline='') as csvfile:
 		    reader = csv.DictReader(csvfile)
