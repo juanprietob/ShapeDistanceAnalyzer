@@ -42,6 +42,11 @@ class ShapeStats(ScriptedLoadableModule):
 ########################################################################################
 
 class ShapeStatsWidget(ScriptedLoadableModuleWidget):
+
+    #------------------------------------------------------#    
+    #         Setup and configuration Functions            #
+    #------------------------------------------------------#
+
     #Variable initialisation and widgets confguration
     def setup(self):
 
@@ -157,17 +162,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.pushButton_compute.connect('clicked()', self.onCompute)
         self.pushButton_save.connect('clicked()', self.onSave)
 
-    # function called each time that the user "enter" in Diagnostic Index interface
-    def enter(self):
-        #TODO
-        pass
 
-    # function called each time that the user "exit" in Diagnostic Index interface
-    def exit(self):
-        #TODO
-        pass
-
-    
     #------------------------------------------------------#    
     #                   Events Functions                   #
     #------------------------------------------------------#
@@ -318,24 +313,6 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
 
         self.shapeA_name='Shape A'
         self.shapeB_name='Shape B'
-
-    #------------------------------------------------------#    
-    #                   Common Functions                   #
-    #------------------------------------------------------#
-
-    #Function to get a widget in the .ui file that describe the module interface
-    def get(self, objectName):
-        
-        return slicer.util.findChild(self.interface.widget, objectName)
-
-    #Check if the file given has the right extension
-    def checkExtension(self, filename, extension):
-        if os.path.splitext(os.path.basename(filename))[1] == extension : 
-            return True
-        elif os.path.basename(filename) == "" or os.path.basename(filename) == " " :
-            return False
-        slicer.util.errorDisplay("Wrong file extension, a '" + extension + "' file is needed!")
-        return False
 
 
     #------------------------------------------------------#    
@@ -802,9 +779,24 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         shape_node=slicer.mrmlScene.GetFirstNodeByName(name)
         shape_node.GetDisplayNode().SetScalarVisibility(0)
 
+
     #------------------------------------------------------#    
     #                  Utility Functions                   #
     #------------------------------------------------------#
+
+    #Function to get a widget in the .ui file that describe the module interface
+    def get(self, objectName):
+        
+        return slicer.util.findChild(self.interface.widget, objectName)
+
+    #Check if the file given has the right extension
+    def checkExtension(self, filename, extension):
+        if os.path.splitext(os.path.basename(filename))[1] == extension : 
+            return True
+        elif os.path.basename(filename) == "" or os.path.basename(filename) == " " :
+            return False
+        slicer.util.errorDisplay("Wrong file extension, a '" + extension + "' file is needed!")
+        return False
 
     #function that convert a 1 dimensional numpy array into a VTKFloat array
     def generateVTKFloatArrayFromNumpy(self,np_array):
