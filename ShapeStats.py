@@ -240,6 +240,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
                 self.activateInterface()
                 self.logic.disableAllScalarViews()
                 self.deleteResultsLabels()
+                self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
                 self.comboBox_mode.setCurrentIndex(-1)
                 self.comboBox_mode.setDisabled(True)
                 self.pushButton_save.setDisabled(True)
@@ -264,6 +265,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
                 self.activateInterface()
                 self.logic.disableAllScalarViews()
                 self.deleteResultsLabels()
+                self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
                 self.comboBox_mode.setCurrentIndex(-1)
                 self.comboBox_mode.setDisabled(True)
                 self.pushButton_save.setDisabled(True)
@@ -449,7 +451,19 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
 
         QLabel_array=list()
         for key in value_order:
-            QLabel_array.append([qt.QLabel(key+':'),qt.QLabel(results[key])])
+            value=results[key]
+            
+            if isinstance(value,bool):
+                if value==True:
+                    value = 'yes'
+                else:
+                    value = 'no'
+            elif isinstance(value,int):
+                pass
+            else:
+                value=round(value,4)
+
+            QLabel_array.append([qt.QLabel(key+':'),qt.QLabel(value)])
 
         return QLabel_array
     
@@ -794,7 +808,6 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
 
         node = slicer.mrmlScene.GetFirstNodeByName("Display "+self.shapeB_name)
         node.SetScalarRange(mini,maxi)
-
 
     #take a numpy array distance, convert it in a vtkfloat array 
     #and set the scalars of polydata with this array 

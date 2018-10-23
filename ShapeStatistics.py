@@ -101,6 +101,7 @@ class StatisticsLogic:
 		dist = A-B
 		dist = np.linalg.norm(dist,axis=1)
 
+
 		if not signed:
 			return dist
 
