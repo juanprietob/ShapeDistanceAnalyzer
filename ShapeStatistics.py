@@ -5,7 +5,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 
 import csv
 
-class ShapeStatisticsLogic:
+class StatisticsLogic:
 	def __init__(self):
 		self.A_path=None
 
@@ -44,6 +44,21 @@ class ShapeStatisticsLogic:
 		if self.A_path and self.B_path:
 			ready=True
 		return ready
+
+	#return True if the 2 shapes have the same number of point
+	def IsCorrespondencePossible(self):
+		try:
+			nbr_points_A=self.getPolydata('A').GetPoints().GetNumberOfPoints()
+			nbr_points_B=self.getPolydata('B').GetPoints().GetNumberOfPoints()
+
+			if nbr_points_A == nbr_points_B:
+				return True
+			else:
+				return False
+		except:
+			return False
+
+
 	
 	#compute distances between A and B using the closest point method
 	#the vtk object vtkDistancePolyDataFilter is used to compute the distances

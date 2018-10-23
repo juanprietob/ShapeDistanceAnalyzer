@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+  <category>Statistics</category>
+  <title>ShapeStatistics</title>
+  <description><![CDATA[This provides a commandline interface to process statistics on shapes.]]></description>
+  <version>1.0.0</version>
+
+
+  <contributor>Mateo Lopez (UNC)</contributor>
+
+  <parameters>
+    <label>IO</label>
+    <description>Inputs parameters</description>
+    <file fileExtensions=".vtk">
+      <name>inputShapeA</name>
+      <label>Input Shape A</label>
+      <channel>input</channel>
+      <index>0</index>
+      <description>Input Shape A</description>
+    </file>
+    <file fileExtensions=".vtk">
+      <name>inputShapeB</name>
+      <label>Input Shape B</label>
+      <channel>input</channel>
+      <index>B</index>
+      <description>Input Shape B</description>
+    </file>
+  </parameters>
+
+  <parameters>
+    <label>Parameters</label>
+    <description><![CDATA[Input/Parameters]]></description>
+    <integer>
+      <name>NumberOfBins</name>
+      <label>Number of bins</label>
+      <longflag>--bins</longflag>
+      <channel>options</channel>
+      <default>256</default>
+      <description><![CDATA[Define the number of bins to compute the histograms.]]></description>
+    </integer>
+    <file fileExtensions=".csv">
+      <name>outputStatisticsCSV</name>
+      <label>Output Statistics</label>
+      <longflag>--save</longflag>
+      <channel>output</channel>
+      <description><![CDATA[Output Statistics]]></description>
+    </file>
+
+  </parameters>
+
+
+</executable>
