@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-
 import ShapeStatistics
-
 import argparse
-
+import sys
 import matplotlib.pyplot as plt
 
 def Args():
@@ -64,25 +61,21 @@ def main():
 	signed=False
 
 	mode='A->B'
-	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='B->A'
-	stats_dict1 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='A->B & B->A'
-	stats_dict2 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
+	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence)
 
-	stats_list.append(stats_dict0)
-	stats_list.append(stats_dict1)
-	stats_list.append(stats_dict2)
+	stats_list.append(stats_dict0['A->B'])
+	stats_list.append(stats_dict0['B->A'])
+	stats_list.append(stats_dict0['A->B & B->A'])
 
-	printStats(stats_dict0)
-	printStats(stats_dict1)
-	printStats(stats_dict2)
+	printStats(stats_dict0['A->B'])
+	printStats(stats_dict0['B->A'])
+	printStats(stats_dict0['A->B & B->A'])
 
 	if args.plot:
 		plt.figure(1)
-		plt.plot(stats_dict0['edge_mean'],stats_dict0['histogram'],'-*r',label='A->B')
-		plt.plot(stats_dict1['edge_mean'],stats_dict1['histogram'],'-*g',label='B->A')
-		plt.plot(stats_dict2['edge_mean'],stats_dict2['histogram'],'-*b',label='A->B and B->A')
+		plt.plot(stats_dict0['A->B']['edge_mean'],stats_dict0['A->B']['histogram'],'-*r',label='A->B')
+		plt.plot(stats_dict0['B->A']['edge_mean'],stats_dict0['B->A']['histogram'],'-*g',label='B->A')
+		plt.plot(stats_dict0['A->B & B->A']['edge_mean'],stats_dict0['A->B & B->A']['histogram'],'-*b',label='A->B and B->A')
 
 		plt.title("Closest point, unsigned distance")
 		plt.legend()
@@ -92,44 +85,38 @@ def main():
 	correspondence=False
 	signed=True
 
-	mode='A->B'
-	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='B->A'
-	stats_dict1 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='A->B & B->A'
-	stats_dict2 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
+	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence)
 
-	stats_list.append(stats_dict0)
-	stats_list.append(stats_dict1)
-	stats_list.append(stats_dict2)
+	stats_list.append(stats_dict0['A->B'])
+	stats_list.append(stats_dict0['B->A'])
+	stats_list.append(stats_dict0['A->B & B->A'])
 
-	printStats(stats_dict0)
-	printStats(stats_dict1)
-	printStats(stats_dict2)
+	printStats(stats_dict0['A->B'])
+	printStats(stats_dict0['B->A'])
+	printStats(stats_dict0['A->B & B->A'])
 
 	if args.plot:
 		plt.figure(2)
-		plt.plot(stats_dict0['edge_mean'],stats_dict0['histogram'],'-*r',label='A->B')
-		plt.plot(stats_dict1['edge_mean'],stats_dict1['histogram'],'-*g',label='B->A')
-		plt.plot(stats_dict2['edge_mean'],stats_dict2['histogram'],'-*b',label='A->B and B->A')
+		plt.plot(stats_dict0['A->B']['edge_mean'],stats_dict0['A->B']['histogram'],'-*r',label='A->B')
+		plt.plot(stats_dict0['B->A']['edge_mean'],stats_dict0['B->A']['histogram'],'-*g',label='B->A')
+		plt.plot(stats_dict0['A->B & B->A']['edge_mean'],stats_dict0['A->B & B->A']['histogram'],'-*b',label='A->B and B->A')
 
-		plt.title("Closest point, signed distance")
+		plt.title("Closest point, unsigned distance")
 		plt.legend()
-
 	#correspondence unsigned
 	print('#################################################################')
 	correspondence=True
 	signed=False
 
 	mode='A<->B'
-	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
+	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence)
 
-	stats_list.append(stats_dict0)
+	stats_list.append(stats_dict0['A<->B'])
 
-	printStats(stats_dict0)
+	printStats(stats_dict0['A<->B'])
 	if args.plot:
 		plt.figure(3)
-		plt.plot(stats_dict0['edge_mean'],stats_dict0['histogram'],'-*r')
+		plt.plot(stats_dict0['A<->B']['edge_mean'],stats_dict0['A<->B']['histogram'],'-*r')
 		plt.title("Correspondence, unsigned distance")
 
 	#correspondence signed
@@ -137,27 +124,24 @@ def main():
 	correspondence=True
 	signed=True
 
-	mode='A->B'
-	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='B->A'
-	stats_dict1 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
-	mode='A->B & B->A'
-	stats_dict2 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
+	stats_dict0 = valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence)
 
-	stats_list.append(stats_dict0)
-	stats_list.append(stats_dict1)
-	stats_list.append(stats_dict2)
 
-	printStats(stats_dict0)
-	printStats(stats_dict1)
-	printStats(stats_dict2)
+	stats_list.append(stats_dict0['A->B'])
+	stats_list.append(stats_dict0['B->A'])
+	stats_list.append(stats_dict0['A->B & B->A'])
+
+	printStats(stats_dict0['A->B'])
+	printStats(stats_dict0['B->A'])
+	printStats(stats_dict0['A->B & B->A'])
+
 	if args.plot:
 		plt.figure(4)
-		plt.plot(stats_dict0['edge_mean'],stats_dict0['histogram'],'-*r',label='A->B')
-		plt.plot(stats_dict1['edge_mean'],stats_dict1['histogram'],'-*g',label='B->A')
-		plt.plot(stats_dict2['edge_mean'],stats_dict2['histogram'],'-*b',label='A->B and B->A')
+		plt.plot(stats_dict0['A->B']['edge_mean'],stats_dict0['A->B']['histogram'],'-*r',label='A->B')
+		plt.plot(stats_dict0['B->A']['edge_mean'],stats_dict0['B->A']['histogram'],'-*g',label='B->A')
+		plt.plot(stats_dict0['A->B & B->A']['edge_mean'],stats_dict0['A->B & B->A']['histogram'],'-*b',label='A->B and B->A')
 
-		plt.title("Correspondence, signed distance")
+		plt.title("Closest point, unsigned distance")
 		plt.legend()
 
 	if args.save_path != '':

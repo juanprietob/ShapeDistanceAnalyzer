@@ -20,10 +20,10 @@ reload(ShapeStatistics)
 
 #Uses ScriptedLoadableModule base class, available at:
 #https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-class ShapeStats(ScriptedLoadableModule):
+class ShapeDistanceAnalyzer(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        parent.title = "ShapeStats"
+        parent.title = "ShapeDistanceAnalyzer"
         parent.categories = ["Statistics"]
         parent.dependencies = []
         parent.contributors = ["Lopez Mateo (University of North Carolina)"]
@@ -40,7 +40,7 @@ class ShapeStats(ScriptedLoadableModule):
 #                                   WIDGET CLASS                                       #
 ########################################################################################
 
-class ShapeStatsWidget(ScriptedLoadableModuleWidget):
+class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
     #------------------------------------------------------#    
     #         Setup and configuration Functions            #
@@ -52,7 +52,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         ScriptedLoadableModuleWidget.setup(self)        
 
         # Global Variables
-        self.logic = ShapeStatsLogic(self)
+        self.logic = ShapeDistanceAnalyzerLogic(self)
 
         self.current_file_A = None
         self.current_file_B = None
@@ -60,7 +60,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.result_labels = [[]]
 
         #Load the interface from .ui file
-        self.moduleName = 'ShapeStats'
+        self.moduleName = 'ShapeDistanceAnalyzer'
         scriptedModulesPath = eval('slicer.modules.%s.path' % self.moduleName.lower())
         scriptedModulesPath = os.path.dirname(scriptedModulesPath)
         path = os.path.join(scriptedModulesPath, 'Resources', 'UI', '%s.ui' % self.moduleName)
@@ -69,9 +69,6 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
 
         #get, configure and connect widgets and add the colorscale widget
         self.getWidgets()
-
-        color_scale=qt.QWidget()
-        self.gridLayout_color.addWidget(color_scale,2,0,1,4)
 
         self.defaultConfigWidget()
         self.connectWidget()
@@ -96,8 +93,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         #Colors
         self.doubleSpinBox_minimum=self.logic.get('doubleSpinBox_minimum')
         self.doubleSpinBox_maximum=self.logic.get('doubleSpinBox_maximum')
-        self.horizontalSlider_color=self.logic.get('horizontalSlider_color')
-        self.gridLayout_color=self.logic.get('gridLayout_color')
+        self.ctkRangeSlider_color=self.logic.get('ctkRangeSlider_color')
 
         #Results
         self.gridLayout_results=self.logic.get('gridLayout_results')
@@ -128,8 +124,8 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
 
         #Translation
         self.horizontalSlider_translation.setMinimum(0)
-        self.horizontalSlider_translation.setMaximum(500)
-        self.horizontalSlider_translation.setValue(0)
+        self.horizontalSlider_translation.setMaximum(400)
+        self.horizontalSlider_translation.setValue(200)
         self.horizontalSlider_translation.setDisabled(True)
 
         #Colors
@@ -141,10 +137,9 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_maximum.setMaximum(1000)
         self.doubleSpinBox_maximum.setDisabled(True)
 
-        self.horizontalSlider_color.setMinimum(-1000)
-        self.horizontalSlider_color.setMaximum(1000)
-        self.horizontalSlider_color.setValue(0)
-        self.horizontalSlider_color.setDisabled(True)
+        self.ctkRangeSlider_color.setMinimumValue(0)
+        self.ctkRangeSlider_color.setMaximumValue(1000)
+        self.ctkRangeSlider_color.setValues(0,1000)
 
         #Results
         self.comboBox_mode.clear()
@@ -169,6 +164,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         #Colors
         self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onScalarRangeChanged)
         self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onScalarRangeChanged)
+        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onScalarRangeChanged)
 
         #Results
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
@@ -191,6 +187,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         #Colors
         self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
         self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
+        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onScalarRangeChanged)
 
         #Results
         self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
@@ -211,6 +208,9 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
             self.comboBox_correspondence.setCurrentIndex(index)
             self.comboBox_correspondence.setDisabled(True)
 
+        self.x_range=self.logic.getXRange()
+        self.onTranslation(200)
+        self.horizontalSlider_translation.setValue(200)
         self.horizontalSlider_translation.setEnabled(True)
 
         self.pushButton_compute.setEnabled(True)
@@ -295,19 +295,17 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         
         #Config interface
         self.pushButton_save.setEnabled(True)
+
         self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
-        if signed == False and correspondence == True:
-            self.comboBox_mode.clear()
-            self.comboBox_mode.addItem('A<->B')
+        self.comboBox_mode.clear()
+        modes=self.logic.stats_dict.keys()
+        mode=modes[0]
+        for i in modes:
+            self.comboBox_mode.addItem(i)
+        if len(modes)==1:
             self.comboBox_mode.setDisabled(True)
-            mode='A<->B'
         else:
-            self.comboBox_mode.clear()
-            self.comboBox_mode.addItem('A->B')
-            self.comboBox_mode.addItem('B->A')
-            self.comboBox_mode.addItem('A->B & B->A')
             self.comboBox_mode.setEnabled(True)
-            mode='A->B'
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
 
         #show results
@@ -345,9 +343,6 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_maximum.setEnabled(True)
         self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onScalarRangeChanged)
 
-        self.horizontalSlider_color.setValue(0)
-        self.horizontalSlider_color.setEnabled(True)
-
         self.logic.setScalarRange(mini,maxi)
 
         self.logic.setDistance(mode)
@@ -355,18 +350,37 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
     def onScalarRangeChanged(self):
         mini=self.doubleSpinBox_minimum.value
         maxi=self.doubleSpinBox_maximum.value
-        self.logic.setScalarRange(mini,maxi)
+        delta=maxi-mini
+        slider_min=self.ctkRangeSlider_color.minimumValue/100.0
+        slider_max=self.ctkRangeSlider_color.maximumValue/100.0
+
+        print('mini',mini)
+        print('maxi',maxi)
+        print('slider_min',slider_min)
+        print('slider_max',slider_max)
+        print('final_min',mini+delta*(slider_min))
+        print('final_max',mini+delta*(slider_max))
+        self.logic.setScalarRange(mini+delta*(slider_min),mini+delta*(slider_max))
 
     #Action to do when the translation slider have been moved
     def onTranslation(self,value):
-        self.logic.updateTransform('A',value)
-        self.logic.updateTransform('B',value)
+        x_translation=self.x_range*value/400.0
+        self.logic.updateTransform('A',x_translation)
+        self.logic.updateTransform('B',x_translation)
 
     #Action to do when save button is pushed
     def onSave(self):
-        print('Not saving ...',end=' ')
+        dlg = ctk.ctkFileDialog()
+        CSVpath = dlg.getSaveFileName(None, "Export CSV file for Classification groups", os.path.join(qt.QDir.homePath(), "Desktop"), "CSV File (*.csv)")
 
-        print('Done!')
+        if CSVpath == '' or CSVpath==' ':
+            return
+
+        if self.logic.checkExtension(CSVpath,'.csv'):
+            print('saving ...',end=' ')
+            self.logic.saveResults(CSVpath)
+            slicer.util.delayDisplay("Exploration saved")
+            print('Done!')
 
 
     #------------------------------------------------------#    
@@ -389,7 +403,7 @@ class ShapeStatsWidget(ScriptedLoadableModuleWidget):
 #                                   LOGIC CLASS                                        #
 ########################################################################################
 
-class ShapeStatsLogic(ScriptedLoadableModuleLogic):
+class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     def __init__(self, interface):
         self.interface = interface
 
@@ -417,25 +431,8 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #initialise self.stats_dict, it contains the results for each mode (A->B / B->A / A->B & B->A) 
     # if correspondence = True and signed = False, only one mode is computed (A<->B)
     def computeStats(self,nb_bins,signed,correspondence):
-        self.stats_dict=dict()
 
-        if signed == False and correspondence == True:
-            mode = 'A<->B'
-            stats_result=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,mode=mode)
-            self.stats_dict[mode]=stats_result
-
-        else:
-            mode='A->B'
-            stats_result=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,mode=mode)
-            self.stats_dict[mode]=stats_result
-
-            mode='B->A'
-            stats_result=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,mode=mode)
-            self.stats_dict[mode]=stats_result
-
-            mode='A->B & B->A'
-            stats_result=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,mode=mode)
-            self.stats_dict[mode]=stats_result
+        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence)
 
     #function to generate results Qlabels
     #return an array of array containing the Qlabels to show in function of the desired mode.
@@ -683,7 +680,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         self.delete3DVisualisationNodes(self.shapeA_name)
         self.delete3DVisualisationNodes(self.shapeB_name)
 
-        self.deleteNodeByName('ShapeStats Distance Color Table')
+        self.deleteNodeByName('ShapeDistanceAnalyzer Distance Color Table')
 
     #function to compute automaticaly the normals of a polydata
     def autoOrientNormals(self, model):
@@ -698,7 +695,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         model.GetPointData().SetNormals(normalspoint)
 
     #function to update the transform(translation on the x axis) Node of the shape B
-    def updateTransform(self,shape,value):\
+    def updateTransform(self,shape,value):
         #translation shape A
         if shape == 'A':
             transform_node = slicer.mrmlScene.GetFirstNodeByName("Translation "+self.shapeA_name)
@@ -713,6 +710,18 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
             transform.Translate(-value,0,0)
             transform_node.SetAndObserveTransformToParent(transform)
 
+    #use the polydata boundaries to compute the X axis range
+    def getXRange(self):
+        polydata = self.stats.getPolydata('A')
+        boundsA=polydata.GetBounds()
+        rangeA=boundsA[1]-boundsA[2]
+
+        polydata = self.stats.getPolydata('B')
+        boundsB=polydata.GetBounds()
+        rangeB=boundsB[1]-boundsB[2]
+
+        return max(rangeA,rangeB)
+
 
     #------------------------------------------------------#    
     #            Color visualization Functions             #
@@ -721,7 +730,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #generate a color table node going from blue to green to red.
     #It will be used as look up table to visualise distances on shapes
     def generateLUT(self):
-        self.deleteNodeByName('ShapeStats Distance Color Table')
+        self.deleteNodeByName('ShapeDistanceAnalyzer Distance Color Table')
         colorlow = (0.1,0.1, 1 )
         colormid = (0.1, 1 ,0.1)
         colorhigh= ( 1 ,0.1,0.1)
@@ -730,7 +739,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         total_number_of_colors=512
 
         colorTableNode = slicer.vtkMRMLColorTableNode()
-        colorTableNode.SetName('ShapeStats Color Table')
+        colorTableNode.SetName('ShapeDistanceAnalyzer Color Table')
         colorTableNode.SetTypeToUser()
         colorTableNode.HideFromEditorsOff()
         colorTableNode.SaveWithSceneOff()
@@ -757,7 +766,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
 
             colorTableNode.AddColor(str(number_of_colors+i), r, g, b, 1)  
 
-        colorTableNode.SetName('ShapeStats Distance Color Table')
+        colorTableNode.SetName('ShapeDistanceAnalyzer Distance Color Table')
         slicer.mrmlScene.AddNode(colorTableNode)
 
     #Show the distances on the corresponding(s) polydata in function of the mode
@@ -780,9 +789,10 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
         if mode == 'A<->B':
             #set polydata scalars
             self.setPolyDataDistanceScalars('A',mode,index=0)
+            self.setPolyDataDistanceScalars('B',mode,index=0)
             #enable/disable scalar visibility
             self.enableScalarView(self.shapeA_name)
-            self.disableScalarView(self.shapeB_name)
+            self.enableScalarView(self.shapeB_name)
 
         if mode == 'A->B & B->A':
             #set polydata scalars
@@ -796,7 +806,7 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #set scalar range to min distance/max distance 
     def setModelNodeLUT(self,name):
         shapenode=slicer.mrmlScene.GetFirstNodeByName(name)
-        colornode = slicer.mrmlScene.GetFirstNodeByName('ShapeStats Distance Color Table')
+        colornode = slicer.mrmlScene.GetFirstNodeByName('ShapeDistanceAnalyzer Distance Color Table')
         if (shapenode is not None) and (colornode is not None):
 
             shapenode.GetDisplayNode().SetAndObserveColorNodeID(colornode.GetID())
@@ -840,6 +850,14 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
     #                  Utility Functions                   #
     #------------------------------------------------------#
 
+    def saveResults(self,CSVpath):
+        listofdict=list()
+
+        for mode,dict in self.stats_dict.items():
+            listofdict.append(dict)
+
+        self.stats.SaveStatsAsCSV(CSVpath,listofdict)
+
     #Function to get a widget in the .ui file that describe the module interface
     def get(self, objectName):
         
@@ -875,5 +893,5 @@ class ShapeStatsLogic(ScriptedLoadableModuleLogic):
 #                                   TEST CLASS                                         #
 ########################################################################################
 
-class ShapeStatsTest(ScriptedLoadableModuleTest):
+class ShapeDistanceAnalyzerTest(ScriptedLoadableModuleTest):
     pass

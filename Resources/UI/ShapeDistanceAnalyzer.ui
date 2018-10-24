@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ShapeVariationAnalyzer</class>
- <widget class="qMRMLWidget" name="ShapeVariationAnalyzer">
+ <class>ShapeDistanceAnalyzer</class>
+ <widget class="qMRMLWidget" name="ShapeDistanceAnalyzer">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -149,7 +149,7 @@
          <widget class="QDoubleSpinBox" name="doubleSpinBox_minimum"/>
         </item>
         <item row="1" column="0" colspan="4">
-         <widget class="QSlider" name="horizontalSlider_color">
+         <widget class="ctkRangeSlider" name="ctkRangeSlider_color" native="true">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>

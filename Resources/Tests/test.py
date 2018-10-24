@@ -3,6 +3,7 @@ from __future__ import print_function
 import unittest
 import sys
 sys.path.append('../../')
+sys.path.append('./')
 import ShapeStatistics
 import csv
 import numpy as np
@@ -87,10 +88,11 @@ class ShapeStatisticsTesting(unittest.TestCase):
 		    	bins=int(teststats['number_of_bins'])
 		    	print('Testing with Correspondance =',correspondence,',Signed =',signed,',Mode =',mode,end=' ... ')
 		    	sys.stdout.flush()
-		    	stats=valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence,mode=mode)
+		    	stats=valmet.ComputeValues(bins=bins,signed=signed,correspondence=correspondence)
+		    	stats=stats[mode]
 		    	
 		    	for key , value in teststats.items():
-		    		self.assertAlmostEqual(value,str(stats[key]),delta)
+		    		self.assertAlmostEqual(value,str(stats[key]),delta=0.00001)
 		    	print('ok')
 		
 

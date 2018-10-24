@@ -86,7 +86,7 @@ class StatisticsLogic:
 	#the vtk object vtkSelectEnclosedPoints is used to give a sign for each distance
 	#inverse=False : A->B ,inverse=True : B->A
 	#return a numpy array 
-	def CorrespondenceDistance(self,signed=False,inverse=False,tolerance=0.0000001):
+	def CorrespondenceDistance(self,signed=False,inverse=False,tolerance=0.00000001):
 
 		A = self.A_reader.GetOutput()
 		A = A.GetPoints()
@@ -135,53 +135,21 @@ class StatisticsLogic:
 	#  -the histogram array (bins elements)
 	#  -the edge array associated (bins+1 elements)
 	#  -a list containing the distances array used (contains only 1 array in mode 0 and 1 and 2 arrays in mode 2)
-	def Histogram(self,signed=True,bins=256,correspondence=False,mode=2):
+	def Histogram(self,signed=True,bins=256,correspondence=False):
 		if self.A_path and self.B_path:
+			hist_dict=dict()
+			distances=dict()
 			if correspondence :
 				if signed == False:
 					dist = self.CorrespondenceDistance(signed=signed)
 					hist , edge = np.histogram(dist,bins=bins)
-					distances=[dist]
+					hist_dict['A<->B'] = hist
+					distances['A<->B'] = [dist] 
+
 
 				else:
-					if mode == 'A->B':
-						dist = self.CorrespondenceDistance(signed=signed,inverse=False)
-						hist,edge=np.histogram(dist,bins=bins)
-						distances=[dist]
-
-					if mode == 'B->A':
-						dist = self.CorrespondenceDistance(signed=signed,inverse=True)
-						hist,edge=np.histogram(dist,bins=bins)
-						distances=[dist]
-
-					if mode == 'A->B & B->A':
-						distab = self.CorrespondenceDistance(signed=signed,inverse=False)
-						distba = self.CorrespondenceDistance(signed=signed,inverse=True)
-
-						maxi=np.max([np.max(distab),np.max(distba)])
-						mini=np.min([np.min(distab),np.min(distba)])
-
-						histab,edge=np.histogram(distab,bins=bins,range=(mini,maxi))
-						histba,edge=np.histogram(distba,bins=bins,range=(mini,maxi))
-
-						hist = (histab + histba)
-						distances=[distab,distba]
-					
-			else:
-				if mode == 'A->B':
-					distab = self.ClosestPoint(signed=signed,inverse=False)
-					hist,edge=np.histogram(distab,bins=bins)
-					distances=[distab]
-
-
-				if mode == 'B->A':
-					distba = self.ClosestPoint(signed=signed,inverse=True)
-					hist,edge=np.histogram(distba,bins=bins)
-					distances=[distba]
-
-				if mode == 'A->B & B->A':
-					distab = self.ClosestPoint(signed=signed,inverse=False)
-					distba = self.ClosestPoint(signed=signed,inverse=True)
+					distab = self.CorrespondenceDistance(signed=signed,inverse=False)
+					distba = self.CorrespondenceDistance(signed=signed,inverse=True)
 
 					maxi=np.max([np.max(distab),np.max(distba)])
 					mini=np.min([np.min(distab),np.min(distba)])
@@ -189,15 +157,32 @@ class StatisticsLogic:
 					histab,edge=np.histogram(distab,bins=bins,range=(mini,maxi))
 					histba,edge=np.histogram(distba,bins=bins,range=(mini,maxi))
 
-					hist = histba + histab
+					hist_dict['A->B'] = histab 
+					hist_dict['B->A'] = histba
+					hist_dict['A->B & B->A'] = histab +histba
+					distances['A->B'] = [distab] 
+					distances['B->A'] = [distba]
+					distances['A->B & B->A'] = [distab,distba]
 
-					distances=[distab,distba]
+					
+			else:
+				distab = self.ClosestPoint(signed=signed,inverse=False)
+				distba = self.ClosestPoint(signed=signed,inverse=True)
 
+				maxi=np.max([np.max(distab),np.max(distba)])
+				mini=np.min([np.min(distab),np.min(distba)])
 
-			self.hist=hist
-			self.edge=edge
-			self.edgemean = self.EdgeMean()
-			return hist, edge, distances
+				histab,edge=np.histogram(distab,bins=bins,range=(mini,maxi))
+				histba,edge=np.histogram(distba,bins=bins,range=(mini,maxi))
+
+				hist_dict['A->B'] = histab 
+				hist_dict['B->A'] = histba
+				hist_dict['A->B & B->A'] = histab +histba
+				distances['A->B'] = [distab] 
+				distances['B->A'] = [distba]
+				distances['A->B & B->A'] = [distab,distba]
+
+			return hist_dict, edge, distances
 
 	#compute the mean of each bin dscribed by self.edge
 	#return 1 numpy array
@@ -232,8 +217,16 @@ class StatisticsLogic:
 
 	#compute the minimum and the maximum of the histogram using self.edge
 	def MinAndMax(self):
-		minimum = np.min(self.edge)
-		maximum = np.max(self.edge)
+		for i in range(len(self.hist)):
+			if self.hist[i]!=0:
+				minimum=self.edge[i]
+				break
+
+		fliped=np.flip(self.hist,axis=0)
+		for i in range(len(fliped)):
+			if fliped[i]!=0:
+				maximum=np.flip(self.edge,axis=0)[i]
+				break
 		return minimum, maximum
 
 	#return the absolute maximum between minimum and maximum
@@ -287,42 +280,52 @@ class StatisticsLogic:
 	#compute the histogram and the statistic values associated
 	#mode=0: A->B, mode=1: B->A, mode=2: A->B and B->A
 	#return a dictionnary containing all the values
-	def ComputeValues(self,signed=True,bins=256,correspondence=False,mode=2):
-		hist,edge,distances=self.Histogram(signed=signed,bins=bins,correspondence=correspondence,mode=mode)
-
-		minimum, maximum = self.MinAndMax()
-
-		Hausdorf = self.Hausdorf(minimum,maximum)
-
-		mean,sigma =self.MeanAndSigma()
-
-		MSD = self.MSD()
-		MAD = self.MAD()
-
-		median = self.Median()
-
-		IQR,IQR_Q1,IQR_Q3=self.IQR()
+	def ComputeValues(self,signed=True,bins=256,correspondence=False):
+		hist_dict,edge,distances=self.Histogram(signed=signed,bins=bins,correspondence=correspondence)
 
 		stats_dict=dict()
-		stats_dict['distances']=distances
-		stats_dict['corresponding_points_exist']=correspondence
-		stats_dict['mode']=mode
-		stats_dict['signed_distances']=signed
-		stats_dict['number_of_bins']=bins
-		stats_dict['histogram']=hist
-		stats_dict['edge']=edge
-		stats_dict['edge_mean']=self.edgemean
-		stats_dict['minimum']=minimum
-		stats_dict['maximum']=maximum
-		stats_dict['hausdorf']=Hausdorf
-		stats_dict['mean']=mean
-		stats_dict['sigma']=sigma
-		stats_dict['MSD']=MSD
-		stats_dict['MAD']=MAD
-		stats_dict['median']=median
-		stats_dict['IQR_Q1']=IQR_Q1
-		stats_dict['IQR_Q3']=IQR_Q3
-		stats_dict['IQR']=IQR
+		for mode in hist_dict.keys():
+			self.hist=hist_dict[mode]
+			self.edge=edge
+			self.edgemean = self.EdgeMean()
+
+			minimum, maximum = self.MinAndMax()
+
+			Hausdorf = self.Hausdorf(minimum,maximum)
+
+			mean,sigma =self.MeanAndSigma()
+
+			MSD = self.MSD()
+			MAD = self.MAD()
+
+			median = self.Median()
+
+			IQR,IQR_Q1,IQR_Q3=self.IQR()
+
+			stats_values=dict()
+			stats_values['distances']=distances[mode]
+			stats_values['corresponding_points_exist']=correspondence
+			stats_values['mode']=mode
+			stats_values['signed_distances']=signed
+			stats_values['number_of_bins']=bins
+			stats_values['histogram']=self.hist
+			stats_values['edge']=self.edge
+			stats_values['edge_mean']=self.edgemean
+			stats_values['minimum']=minimum
+			stats_values['maximum']=maximum
+			stats_values['hausdorf']=Hausdorf
+			stats_values['mean']=mean
+			stats_values['sigma']=sigma
+			stats_values['MSD']=MSD
+			stats_values['MAD']=MAD
+			stats_values['median']=median
+			stats_values['IQR_Q1']=IQR_Q1
+			stats_values['IQR_Q3']=IQR_Q3
+			stats_values['IQR']=IQR
+
+			
+			stats_dict[mode]=stats_values
+
 
 		return stats_dict
 
@@ -330,13 +333,13 @@ class StatisticsLogic:
 	#each dictionary should come from the ComputeValues function.
 	def SaveStatsAsCSV(self,file_path,dict_list):
 		for stats in dict_list:
-			del stats['histogram']
-			del stats['edge']
+			#del stats['histogram']
+			#del stats['edge']
 			del stats['edge_mean']
 
-		with open(file_path,'w',newline='') as csvfile:
+		with open(file_path,'w') as csvfile:
 			fieldnames = dict_list[0].keys()
-			writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+			writer = csv.DictWriter(csvfile, fieldnames=fieldnames, lineterminator='\n')
 
 			writer.writeheader()
 			for stats in dict_list:
