@@ -316,12 +316,12 @@ class StatisticsLogic:
 			stats_values['hausdorf']=Hausdorf
 			stats_values['mean']=mean
 			stats_values['sigma']=sigma
-			stats_values['MSD']=MSD
-			stats_values['MAD']=MAD
+			stats_values['msd']=MSD
+			stats_values['mad']=MAD
 			stats_values['median']=median
-			stats_values['IQR_Q1']=IQR_Q1
-			stats_values['IQR_Q3']=IQR_Q3
-			stats_values['IQR']=IQR
+			stats_values['iqr_q1']=IQR_Q1
+			stats_values['iqr_q3']=IQR_Q3
+			stats_values['iqr']=IQR
 
 			
 			stats_dict[mode]=stats_values

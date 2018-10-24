@@ -140,6 +140,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.ctkRangeSlider_color.setMinimumValue(0)
         self.ctkRangeSlider_color.setMaximumValue(1000)
         self.ctkRangeSlider_color.setValues(0,1000)
+        self.ctkRangeSlider_color.setDisabled(True)
 
         #Results
         self.comboBox_mode.clear()
@@ -200,7 +201,6 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
     def activateInterface(self):
         if self.logic.stats.IsCorrespondencePossible():
             index=self.comboBox_correspondence.findText('Yes')
-            print(index)
             self.comboBox_correspondence.setCurrentIndex(index)
             self.comboBox_correspondence.setEnabled(True)
         else:
@@ -214,6 +214,16 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.horizontalSlider_translation.setEnabled(True)
 
         self.pushButton_compute.setEnabled(True)
+
+        self.deleteResultsLabels()
+        self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
+        self.comboBox_mode.setCurrentIndex(-1)
+        self.comboBox_mode.setDisabled(True)
+        self.pushButton_save.setDisabled(True)
+        self.doubleSpinBox_minimum.setDisabled(True)
+        self.doubleSpinBox_maximum.setDisabled(True)
+        self.ctkRangeSlider_color.setValues(0,1000)
+        self.ctkRangeSlider_color.setDisabled(True)
 
     #------------------------------------------------------#    
     #                   Events Functions                   #
@@ -240,10 +250,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
                 self.activateInterface()
                 self.logic.disableAllScalarViews()
                 self.deleteResultsLabels()
-                self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
-                self.comboBox_mode.setCurrentIndex(-1)
-                self.comboBox_mode.setDisabled(True)
-                self.pushButton_save.setDisabled(True)
+
 
         elif self.current_file_A:
             self.pathLineEdit_fileA.setCurrentPath(self.current_file_A)
@@ -264,11 +271,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             if self.logic.stats.IsReady():
                 self.activateInterface()
                 self.logic.disableAllScalarViews()
-                self.deleteResultsLabels()
-                self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
-                self.comboBox_mode.setCurrentIndex(-1)
-                self.comboBox_mode.setDisabled(True)
-                self.pushButton_save.setDisabled(True)
+
 
         elif self.current_file_B:
             self.pathLineEdit_fileB.setCurrentPath(self.current_file_B)
@@ -307,6 +310,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         else:
             self.comboBox_mode.setEnabled(True)
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
+
+        
+        self.ctkRangeSlider_color.setEnabled(True)
 
         #show results
         self.onModeChanged(mode)
@@ -354,12 +360,6 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         slider_min=self.ctkRangeSlider_color.minimumValue/100.0
         slider_max=self.ctkRangeSlider_color.maximumValue/100.0
 
-        print('mini',mini)
-        print('maxi',maxi)
-        print('slider_min',slider_min)
-        print('slider_max',slider_max)
-        print('final_min',mini+delta*(slider_min))
-        print('final_max',mini+delta*(slider_max))
         self.logic.setScalarRange(mini+delta*(slider_min),mini+delta*(slider_max))
 
     #Action to do when the translation slider have been moved
@@ -442,25 +442,42 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #              [QLabel_keyN,QLabel_valueN]]
     def formatStats(self,mode):
         value_order=['number_of_bins','signed_distances','corresponding_points_exist','minimum',\
-        'maximum','hausdorf','mean','sigma','MSD','MAD','median','IQR','IQR_Q1','IQR_Q3']
+        'maximum','hausdorf','mean','sigma','msd','mad','median','iqr','iqr_q1','iqr_q3']
+
+        label_dict=dict()
+        label_dict['number_of_bins']='Number of bins'
+        label_dict['signed_distances']='Signed distance'
+        label_dict['corresponding_points_exist']='Corresponding points exist:'
+        label_dict['minimum']='Minimum'
+        label_dict['maximum']='Maximum'
+        label_dict['hausdorf']='Hausdorf'
+        label_dict['mean']='Mean'
+        label_dict['sigma']='Sigma'
+        label_dict['msd']='MSD'
+        label_dict['mad']='MAD'
+        label_dict['median']='Median'
+        label_dict['iqr']='IQR'
+        label_dict['iqr_q1']='IQR_Q1'
+        label_dict['iqr_q3']='IQR_Q3'
 
         results=self.stats_dict[mode]
 
         QLabel_array=list()
         for key in value_order:
             value=results[key]
+            label=label_dict[key]
             
             if isinstance(value,bool):
                 if value==True:
-                    value = 'yes'
+                    value = 'Yes'
                 else:
-                    value = 'no'
+                    value = 'No'
             elif isinstance(value,int):
                 pass
             else:
                 value=round(value,4)
 
-            QLabel_array.append([qt.QLabel(key+':'),qt.QLabel(value)])
+            QLabel_array.append([qt.QLabel(label+':'),qt.QLabel(value)])
 
         return QLabel_array
     
