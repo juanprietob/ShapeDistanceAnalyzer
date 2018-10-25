@@ -2,6 +2,9 @@ import numpy as np
 
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
+#import sys
+#sys.path.append('Resources/LinearSubdivisionFilter')
+import LinearSubdivisionFilter
 
 import csv
 
@@ -23,18 +26,20 @@ class StatisticsLogic:
 		if ID =='A':
 			self.A_path=file_path
 			self.A_reader=reader
+			self.A_polydata=self.A_reader.GetOutput()
 
 		if ID =='B':
 			self.B_path=file_path
 			self.B_reader=reader
+			self.B_polydata=self.B_reader.GetOutput()
 
 	#function that return the polydata assocciated to shape identified by ID
 	def getPolydata(self,ID):
 		if ID =='A':
-			return self.A_reader.GetOutput()
+			return self.A_polydata
 
 		if ID =='B':
-			return self.B_reader.GetOutput()
+			return self.B_polydata
 
 	#return True if both file A and file B have been set
 	#and if the computation is ready to be launched
@@ -48,8 +53,8 @@ class StatisticsLogic:
 	#return True if the 2 shapes have the same number of point
 	def IsCorrespondencePossible(self):
 		try:
-			nbr_points_A=self.getPolydata('A').GetPoints().GetNumberOfPoints()
-			nbr_points_B=self.getPolydata('B').GetPoints().GetNumberOfPoints()
+			nbr_points_A=self.A_reader.GetOutput().GetPoints().GetNumberOfPoints()
+			nbr_points_B=self.B_reader.GetOutput().GetPoints().GetNumberOfPoints()
 
 			if nbr_points_A == nbr_points_B:
 				return True
@@ -58,6 +63,26 @@ class StatisticsLogic:
 		except:
 			return False
 
+	def linearSample(self,sampling_level):
+		if sampling_level==1:
+			self.A_polydata = self.A_reader.GetOutput()
+			self.B_polydata = self.B_reader.GetOutput()
+
+		else:
+			print('')
+			print('Sampling polydata ...',end=' ')
+			self.A_sampler=LinearSubdivisionFilter.LinearSubdivisionFilter()
+			self.A_sampler.SetInputData(self.A_reader.GetOutput())
+			self.A_sampler.SetNumberOfSubdivisions(sampling_level)
+			self.A_sampler.Update()
+			self.A_polydata = self.A_sampler.GetOutput()
+
+			self.B_sampler=LinearSubdivisionFilter.LinearSubdivisionFilter()
+			self.B_sampler.SetInputData(self.B_reader.GetOutput())
+			self.B_sampler.SetNumberOfSubdivisions(sampling_level)
+			self.B_sampler.Update()
+			self.B_polydata = self.B_sampler.GetOutput()
+			print('Done')
 
 	
 	#compute distances between A and B using the closest point method
@@ -68,11 +93,11 @@ class StatisticsLogic:
 		distancefilter=vtk.vtkDistancePolyDataFilter()
 
 		if inverse:
-			distancefilter.SetInputData(1,self.A_reader.GetOutput())
-			distancefilter.SetInputData(0,self.B_reader.GetOutput())
+			distancefilter.SetInputData(1,self.getPolydata('A'))
+			distancefilter.SetInputData(0,self.getPolydata('B'))
 		else:
-			distancefilter.SetInputData(0,self.A_reader.GetOutput())
-			distancefilter.SetInputData(1,self.B_reader.GetOutput())
+			distancefilter.SetInputData(0,self.getPolydata('A'))
+			distancefilter.SetInputData(1,self.getPolydata('B'))
 
 		distancefilter.SetSignedDistance(signed)
 		distancefilter.Update()
@@ -88,12 +113,12 @@ class StatisticsLogic:
 	#return a numpy array 
 	def CorrespondenceDistance(self,signed=False,inverse=False,tolerance=0.00000001):
 
-		A = self.A_reader.GetOutput()
+		A = self.getPolydata('A')
 		A = A.GetPoints()
 		A = A.GetData()
 		A = vtk_to_numpy(A)
 
-		B = self.B_reader.GetOutput()
+		B = self.getPolydata('B')
 		B = B.GetPoints()
 		B = B.GetData()
 		B = vtk_to_numpy(B)
@@ -108,11 +133,11 @@ class StatisticsLogic:
 		else:
 			enclosed_points=vtk.vtkSelectEnclosedPoints()
 			if inverse:
-			    enclosed_points.SetInputData(self.B_reader.GetOutput())
-			    enclosed_points.SetSurfaceData(self.A_reader.GetOutput())
+			    enclosed_points.SetInputData(self.getPolydata('B'))
+			    enclosed_points.SetSurfaceData(self.getPolydata('A'))
 			else:
-			    enclosed_points.SetInputData(self.A_reader.GetOutput())
-			    enclosed_points.SetSurfaceData(self.B_reader.GetOutput())
+			    enclosed_points.SetInputData(self.getPolydata('A'))
+			    enclosed_points.SetSurfaceData(self.getPolydata('B'))
 
 			enclosed_points.SetTolerance(tolerance)
 			enclosed_points.Update()
@@ -280,7 +305,10 @@ class StatisticsLogic:
 	#compute the histogram and the statistic values associated
 	#mode=0: A->B, mode=1: B->A, mode=2: A->B and B->A
 	#return a dictionnary containing all the values
-	def ComputeValues(self,signed=True,bins=256,correspondence=False):
+	def ComputeValues(self,signed=True,bins=256,correspondence=False,sampling_level=1):
+
+		self.linearSample(sampling_level)
+
 		hist_dict,edge,distances=self.Histogram(signed=signed,bins=bins,correspondence=correspondence)
 
 		stats_dict=dict()

@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import os, sys
-
 import unittest
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
@@ -86,6 +85,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.spinBox_bins=self.logic.get('spinBox_bins')
         self.comboBox_distanceType=self.logic.get('comboBox_distanceType')
         self.comboBox_correspondence=self.logic.get('comboBox_correspondence')
+        self.spinBox_sampling=self.logic.get('spinBox_sampling')
 
         #Translation
         self.horizontalSlider_translation=self.logic.get('horizontalSlider_translation')
@@ -122,6 +122,10 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.comboBox_correspondence.addItem('Yes')
         self.comboBox_correspondence.addItem('No')
 
+        self.spinBox_sampling.setMinimum(1)
+        self.spinBox_sampling.setMaximum(50)
+        self.spinBox_sampling.setValue(1)
+
         #Translation
         self.horizontalSlider_translation.setMinimum(0)
         self.horizontalSlider_translation.setMaximum(400)
@@ -129,17 +133,13 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.horizontalSlider_translation.setDisabled(True)
 
         #Colors
-        self.doubleSpinBox_minimum.setMinimum(-1000)
-        self.doubleSpinBox_minimum.setMaximum(1000)
         self.doubleSpinBox_minimum.setDisabled(True)
 
-        self.doubleSpinBox_maximum.setMinimum(-1000)
-        self.doubleSpinBox_maximum.setMaximum(1000)
         self.doubleSpinBox_maximum.setDisabled(True)
 
         self.ctkRangeSlider_color.setMinimumValue(0)
-        self.ctkRangeSlider_color.setMaximumValue(1000)
-        self.ctkRangeSlider_color.setValues(0,1000)
+        self.ctkRangeSlider_color.setMaximumValue(100)
+        self.ctkRangeSlider_color.setValues(0,100)
         self.ctkRangeSlider_color.setDisabled(True)
 
         #Results
@@ -163,9 +163,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.horizontalSlider_translation.connect('valueChanged(int)',self.onTranslation)
 
         #Colors
-        self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onScalarRangeChanged)
-        self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onScalarRangeChanged)
-        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onScalarRangeChanged)
+        self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
         #Results
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
@@ -186,9 +186,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.horizontalSlider_translation.disconnect('valueChanged(int)',self.onTranslation)
 
         #Colors
-        self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
-        self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
-        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onScalarRangeChanged)
+        self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
         #Results
         self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
@@ -222,8 +222,11 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.pushButton_save.setDisabled(True)
         self.doubleSpinBox_minimum.setDisabled(True)
         self.doubleSpinBox_maximum.setDisabled(True)
-        self.ctkRangeSlider_color.setValues(0,1000)
+
+        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
+        self.ctkRangeSlider_color.setValues(0,100)
         self.ctkRangeSlider_color.setDisabled(True)
+        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
     #------------------------------------------------------#    
     #                   Events Functions                   #
@@ -242,8 +245,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             print('Loading file A ...',end=' ')
             self.current_file_A=fileA_path
             self.logic.stats.Set('A',fileA_path)
-            pos_x=self.horizontalSlider_translation.value
-            self.logic.show('A',color=(1,0,0),posX=pos_x)
+            self.logic.show('A',color=(1,0,0))
             print('Done!')
 
             if self.logic.stats.IsReady():
@@ -263,8 +265,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             print('Loading file B ...',end=' ')
             self.current_file_B=fileB_path
             self.logic.stats.Set('B',fileB_path)
-            pos_x=self.horizontalSlider_translation.value
-            self.logic.show('B',color=(0,0,1),posX=-pos_x)
+            self.logic.show('B',color=(0,0,1))
 
             print('Done!')
 
@@ -293,8 +294,10 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         if self.comboBox_correspondence.currentText == 'Yes':
             correspondence=True
 
+        sampling_level=self.spinBox_sampling.value
+
         #computing
-        self.logic.computeStats(nb_bins,signed,correspondence)
+        self.logic.computeStats(nb_bins,signed,correspondence,sampling_level)
         
         #Config interface
         self.pushButton_save.setEnabled(True)
@@ -311,18 +314,14 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.comboBox_mode.setEnabled(True)
         self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
 
-        
-        self.ctkRangeSlider_color.setEnabled(True)
-
         #show results
+        self.logic.show('A',color=(1,0,0))
+        self.logic.show('B',color=(0,0,1))
+        self.onTranslation(self.horizontalSlider_translation.value)
         self.onModeChanged(mode)
 
         #show plot
         self.logic.generate2DVisualisationNodes(mode)
-
-
-
-
         print('Done!')
 
     #Action to do when the mode change
@@ -339,28 +338,83 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         #configure color parameters
         mini,maxi=self.logic.getMinAndMax(mode)
 
-        self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
+        self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_minimum.setMaximum(maxi)
+        self.doubleSpinBox_minimum.setMinimum(mini)
         self.doubleSpinBox_minimum.setValue(mini)
         self.doubleSpinBox_minimum.setEnabled(True)
-        self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onScalarRangeChanged)
+        self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
 
-        self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onScalarRangeChanged)
+        self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_maximum.setMaximum(maxi)
+        self.doubleSpinBox_maximum.setMinimum(mini)
         self.doubleSpinBox_maximum.setValue(maxi)
         self.doubleSpinBox_maximum.setEnabled(True)
-        self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onScalarRangeChanged)
+        self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        
+        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
+        self.ctkRangeSlider_color.setValues(0,100)
+        self.ctkRangeSlider_color.setEnabled(True)
+        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
         self.logic.setScalarRange(mini,maxi)
 
         self.logic.setDistance(mode)
 
-    def onScalarRangeChanged(self):
-        mini=self.doubleSpinBox_minimum.value
-        maxi=self.doubleSpinBox_maximum.value
-        delta=maxi-mini
-        slider_min=self.ctkRangeSlider_color.minimumValue/100.0
-        slider_max=self.ctkRangeSlider_color.maximumValue/100.0
+    def onSpinBoxScalarRangeChanged(self):
+        mode=self.comboBox_mode.currentText
+        mini,maxi=self.logic.getMinAndMax(mode)
 
-        self.logic.setScalarRange(mini+delta*(slider_min),mini+delta*(slider_max))
+        current_mini=self.doubleSpinBox_minimum.value
+        current_maxi=self.doubleSpinBox_maximum.value
+
+        self.doubleSpinBox_minimum.setMaximum(current_maxi)
+        self.doubleSpinBox_maximum.setMinimum(current_mini)
+
+        reduced=current_mini-mini
+        ratio=reduced/(maxi-mini)
+        slider_min=int(ratio*100)
+
+        reduced=current_maxi-mini
+        ratio=reduced/(maxi-mini)
+        slider_max=int(ratio*100)
+
+
+        self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
+        self.ctkRangeSlider_color.setValues(slider_min,slider_max)
+        self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
+
+
+        self.logic.setScalarRange(current_mini,current_maxi)
+
+    def onSliderScalarRangeChanged(self):
+        mode=self.comboBox_mode.currentText
+        mini,maxi=self.logic.getMinAndMax(mode)
+
+        slider_min=self.ctkRangeSlider_color.minimumValue
+        slider_max=self.ctkRangeSlider_color.maximumValue
+
+        ratio=slider_min/100.0
+        reduced=ratio*(maxi-mini)
+        current_min=reduced+mini
+
+        ratio=slider_max/100.0
+        reduced=ratio*(maxi-mini)
+        current_max=reduced+mini
+
+        self.doubleSpinBox_minimum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_maximum.disconnect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+
+        self.doubleSpinBox_minimum.setMaximum(current_max)
+        self.doubleSpinBox_minimum.setValue(current_min)
+
+        self.doubleSpinBox_maximum.setMinimum(current_min)
+        self.doubleSpinBox_maximum.setValue(current_max)
+
+        self.doubleSpinBox_minimum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+        self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
+
+        self.logic.setScalarRange(current_min,current_max)
 
     #Action to do when the translation slider have been moved
     def onTranslation(self,value):
@@ -430,10 +484,10 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #results:
     #initialise self.stats_dict, it contains the results for each mode (A->B / B->A / A->B & B->A) 
     # if correspondence = True and signed = False, only one mode is computed (A<->B)
-    def computeStats(self,nb_bins,signed,correspondence):
+    def computeStats(self,nb_bins,signed,correspondence,sampling_level):
 
-        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence)
-
+        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,sampling_level=sampling_level)
+        
     #function to generate results Qlabels
     #return an array of array containing the Qlabels to show in function of the desired mode.
     #Mode can be 'A<->B' or A->B' or 'B->A' or 'A->B & B->A'
@@ -904,7 +958,7 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         node = slicer.mrmlScene.GetFirstNodeByName(name)
         if node is not None:
             slicer.mrmlScene.RemoveNode(node)
-
+            
 
 ########################################################################################
 #                                   TEST CLASS                                         #
