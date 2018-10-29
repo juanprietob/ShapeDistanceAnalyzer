@@ -138,8 +138,8 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_maximum.setDisabled(True)
 
         self.ctkRangeSlider_color.setMinimumValue(0)
-        self.ctkRangeSlider_color.setMaximumValue(100)
-        self.ctkRangeSlider_color.setValues(0,100)
+        self.ctkRangeSlider_color.setMaximumValue(99)
+        self.ctkRangeSlider_color.setValues(0,99)
         self.ctkRangeSlider_color.setDisabled(True)
 
         #Results
@@ -224,7 +224,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_maximum.setDisabled(True)
 
         self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
-        self.ctkRangeSlider_color.setValues(0,100)
+        self.ctkRangeSlider_color.setValues(0,99)
         self.ctkRangeSlider_color.setDisabled(True)
         self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
@@ -353,7 +353,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_maximum.connect('valueChanged(double)',self.onSpinBoxScalarRangeChanged)
         
         self.ctkRangeSlider_color.disconnect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
-        self.ctkRangeSlider_color.setValues(0,100)
+        self.ctkRangeSlider_color.setValues(0,99)
         self.ctkRangeSlider_color.setEnabled(True)
         self.ctkRangeSlider_color.connect('valuesChanged(int,int)',self.onSliderScalarRangeChanged)
 
@@ -394,11 +394,11 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         slider_min=self.ctkRangeSlider_color.minimumValue
         slider_max=self.ctkRangeSlider_color.maximumValue
 
-        ratio=slider_min/100.0
+        ratio=slider_min/99.0
         reduced=ratio*(maxi-mini)
         current_min=reduced+mini
 
-        ratio=slider_max/100.0
+        ratio=slider_max/99.0
         reduced=ratio*(maxi-mini)
         current_max=reduced+mini
 

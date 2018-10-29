@@ -112,7 +112,7 @@ class StatisticsLogic:
 	#the vtk object vtkSelectEnclosedPoints is used to give a sign for each distance
 	#inverse=False : A->B ,inverse=True : B->A
 	#return a numpy array 
-	def CorrespondenceDistance(self,signed=False,inverse=False,tolerance=0.00000001):
+	def CorrespondenceDistance(self,signed=False,inverse=False,tolerance=0.000000001):
 
 		A = self.getPolydata('A')
 		A = A.GetPoints()
