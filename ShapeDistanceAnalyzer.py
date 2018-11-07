@@ -296,6 +296,13 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
         sampling_level=self.spinBox_sampling.value
 
+        #sampling
+        self.logic.samplePolydatas(fila,fileB,subdivisions)
+
+        #self.checkThreadTimer=qt.QTimer()
+        #self.checkThreadTimer.connect('timeout()', self.onCheckSampling)
+        #self.checkThreadTimer.start(100)
+
         #computing
         self.logic.computeStats(nb_bins,signed,correspondence,sampling_level)
         
@@ -435,6 +442,12 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.logic.saveResults(CSVpath)
             slicer.util.delayDisplay("Exploration saved")
             print('Done!')
+
+
+        
+
+
+
 
 
     #------------------------------------------------------#    
@@ -916,6 +929,83 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     def disableAllScalarViews(self):
         self.disableScalarView(self.shapeA_name)
         self.disableScalarView(self.shapeB_name)
+
+    #------------------------------------------------------#    
+    #           LinearSubdivision cli Functions            #
+    #------------------------------------------------------#
+
+
+    # def onCheckEvaluationState(self):
+    #     state=self.evaluationThread.GetStatusString()
+    #     if state=='Running'or state=='Scheduled':
+    #         seconds = time.time()-self.starting_time
+    #         m, s = divmod(seconds, 60)
+    #         h, m = divmod(m, 60)
+    #         if h==0 and m==0:
+    #             t = "00:%02d" % (s)
+    #         elif h==0 :
+    #             t = "%02d:%02d" % (m, s)
+    #         else:
+    #             t = "%d:%02d:%02d" % (h, m, s)
+    #         if int(s) ==0:
+    #             print("Model evaluation "+self.evaluationThread.GetStatusString()+"  "+t)
+    #         self.pushButton_evaluateModels.setText("Abort evaluation ("+t+")")
+    #     else:
+    #         if self.evaluationFlag=="DONE":
+    #             return
+    #         print('Evaluation done')
+    #         self.checkThreadTimer.stop()
+
+    #         if self.evaluationFlag=="JSON" and self.pathLineEdit_exploration.currentPath==self.eval_param["inputJson"]:
+    #             self.logic.pca_exploration.reloadJSONFile(self.eval_param["inputJson"])
+    #             compactnessPCN,specificityPCN,generalizationPCN=self.generateEvaluationPlots()
+    #             self.plotViewNode.SetPlotChartNodeID(compactnessPCN.GetID())
+    #             self.plotViewNode.SetPlotChartNodeID(specificityPCN.GetID())
+    #             self.plotViewNode.SetPlotChartNodeID(generalizationPCN.GetID())
+    #             self.updateEvaluationPlots()
+
+    #         if self.evaluationFlag=="CSV" and self.pathLineEdit_CSVFilePCA.currentPath==self.originalCSV:
+    #             self.logic.pca_exploration.reloadJSONFile(self.eval_param["inputJson"])
+    #             compactnessPCN,specificityPCN,generalizationPCN=self.generateEvaluationPlots()
+    #             self.plotViewNode.SetPlotChartNodeID(compactnessPCN.GetID())
+    #             self.plotViewNode.SetPlotChartNodeID(specificityPCN.GetID())
+    #             self.plotViewNode.SetPlotChartNodeID(generalizationPCN.GetID())
+    #             self.updateEvaluationPlots()
+
+    #         self.evaluationFlag="DONE"
+
+    #         self.pushButton_evaluateModels.disconnect('clicked()',self.onKillEvaluation)
+    #         self.pushButton_evaluateModels.connect('clicked()',self.onEvaluateModels)
+    #         self.pushButton_evaluateModels.setText("Evaluate models (It may take a long time)")
+
+    #         slicer.util.infoDisplay("Evaluation done.")
+
+
+    def samplePolydatas(self,fileA,fileB,sampling_level):
+
+        sampler = slicer.modules.LinearSubdivision
+
+        directory ,filename = os.path.split(fileA)
+        name ,ext =os.path.splitext(filename)
+        fileA_out=slicer.app.temporaryPath + '/' + name +'out'+ext
+
+        self.eval_paramA = {}
+        self.eval_paramA["input"] = filaA
+        self.eval_paramA["output"] = fileA_out
+        self.eval_paramA["subdivisions"] = sampling_level
+        self.samplingA=slicer.cli.run(sampler, None, self.eval_paramA, wait_for_completion=False)
+
+        directory ,filename = os.path.split(fileB)
+        name ,ext =os.path.splitext(filename)
+        fileB_out=slicer.app.temporaryPath + '/' + name +'out'+ext
+
+        self.eval_paramB = {}
+        self.eval_paramB["input"] = filaB
+        self.eval_paramB["output"] = fileB_out
+        self.eval_paramB["subdivisions"] = sampling_level
+        self.samplingB=slicer.cli.run(sampler, None, self.eval_paramB, wait_for_completion=False)
+
+        
 
     #------------------------------------------------------#    
     #                  Utility Functions                   #
