@@ -306,9 +306,10 @@ class StatisticsLogic:
 	#compute the histogram and the statistic values associated
 	#mode=0: A->B, mode=1: B->A, mode=2: A->B and B->A
 	#return a dictionnary containing all the values
-	def ComputeValues(self,signed=True,bins=256,correspondence=False,sampling_level=1):
+	def ComputeValues(self,signed=True,bins=256,correspondence=False):
 
-		self.linearSample(sampling_level)
+		self.A_polydata = self.A_reader.GetOutput()
+		self.B_polydata = self.B_reader.GetOutput()
 
 		hist_dict,edge,distances=self.Histogram(signed=signed,bins=bins,correspondence=correspondence)
 

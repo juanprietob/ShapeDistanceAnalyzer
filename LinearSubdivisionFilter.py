@@ -3,9 +3,11 @@ import numpy as np
 
 class LinearSubdivisionFilter:
 
-	InputData = None
-	Output = None
-	NumberOfSubdivisions = 1
+
+	def __init__(self,e):
+		InputData = None
+		Output = None
+		NumberOfSubdivisions = 1
 
 	def SetInputData(self, polydata):
 		

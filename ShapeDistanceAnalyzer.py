@@ -281,7 +281,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
     #Action to do when compute button is pushed
     def onCompute(self):
-        print('Computing ...',end=' ')
+        print('Computing ...')
 
         #Getting parameters
         nb_bins=self.spinBox_bins.value
@@ -297,14 +297,19 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         sampling_level=self.spinBox_sampling.value
 
         #sampling
-        self.logic.samplePolydatas(fila,fileB,subdivisions)
+        if sampling_level!=0:
+            fileA=self.pathLineEdit_fileA.currentPath
+            fileB=self.pathLineEdit_fileB.currentPath
 
-        #self.checkThreadTimer=qt.QTimer()
-        #self.checkThreadTimer.connect('timeout()', self.onCheckSampling)
-        #self.checkThreadTimer.start(100)
+            self.logic.samplePolydatas(fileA,fileB,sampling_level)
+
+            self.checkThreadTimer=qt.QTimer()
+            self.checkThreadTimer.connect('timeout()', self.onCheckSampling)
+            self.checkThreadTimer.start(100)
+            return
 
         #computing
-        self.logic.computeStats(nb_bins,signed,correspondence,sampling_level)
+        self.logic.computeStats(nb_bins,signed,correspondence)
         
         #Config interface
         self.pushButton_save.setEnabled(True)
@@ -443,12 +448,62 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             slicer.util.delayDisplay("Exploration saved")
             print('Done!')
 
+    def onCheckSampling(self):
+        stateA=self.logic.samplingA.GetStatusString()
+        stateB=self.logic.samplingB.GetStatusString()
+        if stateA=='Running'or stateA=='Scheduled' or stateB=='Running'or stateB=='Scheduled':
+            print('Sampling File A:',stateA)
+            print('Sampling File B:',stateB)
+        else:
+            print('Sampling done!')
+            self.checkThreadTimer.stop()
+            self.checkThreadTimer.disconnect('timeout()', self.onCheckSampling)
 
-        
+            #Getting parameters
+            nb_bins=self.spinBox_bins.value
+
+            signed=False
+            if self.comboBox_distanceType.currentText == 'Signed Distance':
+                signed=True
+
+            correspondence=False
+            if self.comboBox_correspondence.currentText == 'Yes':
+                correspondence=True
 
 
+            fileA_path=self.logic.fileA_out
+            fileB_path=self.logic.fileB_out
 
+            self.logic.stats.Set('A',fileA_path)
+            self.logic.stats.Set('B',fileB_path)
 
+            #computing
+            self.logic.computeStats(nb_bins,signed,correspondence)
+            
+            #Config interface
+            self.pushButton_save.setEnabled(True)
+
+            self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
+            self.comboBox_mode.clear()
+            modes=self.logic.stats_dict.keys()
+            mode=modes[0]
+            for i in modes:
+                self.comboBox_mode.addItem(i)
+            if len(modes)==1:
+                self.comboBox_mode.setDisabled(True)
+            else:
+                self.comboBox_mode.setEnabled(True)
+            self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
+
+            #show results
+            self.logic.show('A',color=(1,0,0))
+            self.logic.show('B',color=(0,0,1))
+            self.onTranslation(self.horizontalSlider_translation.value)
+            self.onModeChanged(mode)
+
+            #show plot
+            self.logic.generate2DVisualisationNodes(mode)
+            print('Done!')
 
     #------------------------------------------------------#    
     #                  Utility Functions                   #
@@ -497,9 +552,9 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #results:
     #initialise self.stats_dict, it contains the results for each mode (A->B / B->A / A->B & B->A) 
     # if correspondence = True and signed = False, only one mode is computed (A<->B)
-    def computeStats(self,nb_bins,signed,correspondence,sampling_level):
+    def computeStats(self,nb_bins,signed,correspondence):
 
-        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence,sampling_level=sampling_level)
+        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence)
         
     #function to generate results Qlabels
     #return an array of array containing the Qlabels to show in function of the desired mode.
@@ -816,7 +871,7 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     def generateLUT(self):
         self.deleteNodeByName('ShapeDistanceAnalyzer Distance Color Table')
         colorlow = (0.1,0.1, 1 )
-        colormid = (0.1, 1 ,0.1)
+        colormid = (1, 1 ,1)
         colorhigh= ( 1 ,0.1,0.1)
 
         #should be an odd number
@@ -934,74 +989,26 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #           LinearSubdivision cli Functions            #
     #------------------------------------------------------#
 
-
-    # def onCheckEvaluationState(self):
-    #     state=self.evaluationThread.GetStatusString()
-    #     if state=='Running'or state=='Scheduled':
-    #         seconds = time.time()-self.starting_time
-    #         m, s = divmod(seconds, 60)
-    #         h, m = divmod(m, 60)
-    #         if h==0 and m==0:
-    #             t = "00:%02d" % (s)
-    #         elif h==0 :
-    #             t = "%02d:%02d" % (m, s)
-    #         else:
-    #             t = "%d:%02d:%02d" % (h, m, s)
-    #         if int(s) ==0:
-    #             print("Model evaluation "+self.evaluationThread.GetStatusString()+"  "+t)
-    #         self.pushButton_evaluateModels.setText("Abort evaluation ("+t+")")
-    #     else:
-    #         if self.evaluationFlag=="DONE":
-    #             return
-    #         print('Evaluation done')
-    #         self.checkThreadTimer.stop()
-
-    #         if self.evaluationFlag=="JSON" and self.pathLineEdit_exploration.currentPath==self.eval_param["inputJson"]:
-    #             self.logic.pca_exploration.reloadJSONFile(self.eval_param["inputJson"])
-    #             compactnessPCN,specificityPCN,generalizationPCN=self.generateEvaluationPlots()
-    #             self.plotViewNode.SetPlotChartNodeID(compactnessPCN.GetID())
-    #             self.plotViewNode.SetPlotChartNodeID(specificityPCN.GetID())
-    #             self.plotViewNode.SetPlotChartNodeID(generalizationPCN.GetID())
-    #             self.updateEvaluationPlots()
-
-    #         if self.evaluationFlag=="CSV" and self.pathLineEdit_CSVFilePCA.currentPath==self.originalCSV:
-    #             self.logic.pca_exploration.reloadJSONFile(self.eval_param["inputJson"])
-    #             compactnessPCN,specificityPCN,generalizationPCN=self.generateEvaluationPlots()
-    #             self.plotViewNode.SetPlotChartNodeID(compactnessPCN.GetID())
-    #             self.plotViewNode.SetPlotChartNodeID(specificityPCN.GetID())
-    #             self.plotViewNode.SetPlotChartNodeID(generalizationPCN.GetID())
-    #             self.updateEvaluationPlots()
-
-    #         self.evaluationFlag="DONE"
-
-    #         self.pushButton_evaluateModels.disconnect('clicked()',self.onKillEvaluation)
-    #         self.pushButton_evaluateModels.connect('clicked()',self.onEvaluateModels)
-    #         self.pushButton_evaluateModels.setText("Evaluate models (It may take a long time)")
-
-    #         slicer.util.infoDisplay("Evaluation done.")
-
-
     def samplePolydatas(self,fileA,fileB,sampling_level):
-
-        sampler = slicer.modules.LinearSubdivision
+        sampler = slicer.modules.linearsubdivision
 
         directory ,filename = os.path.split(fileA)
         name ,ext =os.path.splitext(filename)
-        fileA_out=slicer.app.temporaryPath + '/' + name +'out'+ext
+        self.fileA_out=slicer.app.temporaryPath + '/' + name +'out'+ext
 
         self.eval_paramA = {}
-        self.eval_paramA["input"] = filaA
-        self.eval_paramA["output"] = fileA_out
+        self.eval_paramA["input"] = fileA
+        self.eval_paramA["output"] = self.fileA_out
         self.eval_paramA["subdivisions"] = sampling_level
         self.samplingA=slicer.cli.run(sampler, None, self.eval_paramA, wait_for_completion=False)
 
         directory ,filename = os.path.split(fileB)
         name ,ext =os.path.splitext(filename)
-        fileB_out=slicer.app.temporaryPath + '/' + name +'out'+ext
+        self.fileB_out=slicer.app.temporaryPath + '/' + name +'out'+ext
 
         self.eval_paramB = {}
-        self.eval_paramB["input"] = filaB
-        self.eval_paramB["output"] = fileB_out
+        self.eval_paramB["input"] = fileB
+        self.eval_paramB["output"] = self.fileB_out
         self.eval_paramB["subdivisions"] = sampling_level
         self.samplingB=slicer.cli.run(sampler, None, self.eval_paramB, wait_for_completion=False)
 
