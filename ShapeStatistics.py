@@ -8,6 +8,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 import LinearSubdivisionFilter
 
 import csv
+import json
 
 class StatisticsLogic:
 	def __init__(self):
@@ -106,7 +107,7 @@ class StatisticsLogic:
 		datavtkfloat=distancefilter.GetOutput().GetPointData().GetScalars()
 		dist = vtk_to_numpy(datavtkfloat)
 
-		return dist
+		return dist.tolist()
 	
 	#compute distances between A and B assuming that the two shapes have corresponding points
 	#the vtk object vtkSelectEnclosedPoints is used to give a sign for each distance
@@ -129,7 +130,7 @@ class StatisticsLogic:
 
 
 		if not signed:
-			return dist
+			return dist.tolist()
 
 		else:
 			enclosed_points=vtk.vtkSelectEnclosedPoints()
@@ -149,7 +150,7 @@ class StatisticsLogic:
 		    
 			
 
-		return dist
+		return dist.tolist()
 	
 	#compute the histogram between A and B according to the given parameters
 	#mode=0: A->B, mode=1: B->A, mode=2: A->B and B->A
@@ -338,9 +339,9 @@ class StatisticsLogic:
 			stats_values['mode']=mode
 			stats_values['signed_distances']=signed
 			stats_values['number_of_bins']=bins
-			stats_values['histogram']=self.hist
-			stats_values['edge']=self.edge
-			stats_values['edge_mean']=self.edgemean
+			stats_values['histogram']=self.hist.tolist()
+			stats_values['edge']=self.edge.tolist()
+			stats_values['edge_mean']=self.edgemean.tolist()
 			stats_values['minimum']=minimum
 			stats_values['maximum']=maximum
 			stats_values['hausdorf']=Hausdorf
@@ -365,7 +366,8 @@ class StatisticsLogic:
 		for stats in dict_list:
 			#del stats['histogram']
 			#del stats['edge']
-			del stats['edge_mean']
+			#del stats['edge_mean']
+			pass
 
 		with open(file_path,'w') as csvfile:
 			fieldnames = dict_list[0].keys()
@@ -374,6 +376,18 @@ class StatisticsLogic:
 			writer.writeheader()
 			for stats in dict_list:
 				writer.writerow(stats)
+
+	#Save in a JSON file (file_path), all the dictionaries of the list dict_list
+	#each dictionary should come from the ComputeValues function.
+	def SaveStatsAsJSON(self,file_path,dict_list):
+		for stats in dict_list:
+			#del stats['histogram']
+			#del stats['edge']
+			#del stats['edge_mean']
+			pass
+
+		with open(file_path,'w') as jsonfile:
+			json.dump(dict_list,jsonfile,indent=4)
 
 	#test stats functions with a normal law
 	def test(self,mu=0,sig=1,bins=1000):

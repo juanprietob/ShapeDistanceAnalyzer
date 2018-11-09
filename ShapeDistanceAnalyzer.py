@@ -5,6 +5,9 @@ import unittest
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 
+import csv
+import json
+import numpy as np
 import ShapeStatistics
 
 #Debug line, permit to modify ShapeStatistics
@@ -94,6 +97,8 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.doubleSpinBox_minimum=self.logic.get('doubleSpinBox_minimum')
         self.doubleSpinBox_maximum=self.logic.get('doubleSpinBox_maximum')
         self.ctkRangeSlider_color=self.logic.get('ctkRangeSlider_color')
+        self.label_colorMin=self.logic.get('label_colorMin')
+        self.label_colorMax=self.logic.get('label_colorMax')
 
         #Results
         self.gridLayout_results=self.logic.get('gridLayout_results')
@@ -141,6 +146,8 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.ctkRangeSlider_color.setMaximumValue(99)
         self.ctkRangeSlider_color.setValues(0,99)
         self.ctkRangeSlider_color.setDisabled(True)
+        self.label_colorMax.setStyleSheet("QLabel{background-color:rgb(255,26,26);}")
+        self.label_colorMin.setStyleSheet("QLabel{background-color:rgb(26,26,255);}")
 
         #Results
         self.comboBox_mode.clear()
@@ -245,7 +252,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             print('Loading file A ...',end=' ')
             self.current_file_A=fileA_path
             self.logic.stats.Set('A',fileA_path)
-            self.logic.show('A',color=(1,0,0))
+            self.logic.show('A',self.current_file_A,color=(1,0,0))
             print('Done!')
 
             if self.logic.stats.IsReady():
@@ -265,7 +272,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             print('Loading file B ...',end=' ')
             self.current_file_B=fileB_path
             self.logic.stats.Set('B',fileB_path)
-            self.logic.show('B',color=(0,0,1))
+            self.logic.show('B',self.current_file_B,color=(0,0,1))
 
             print('Done!')
 
@@ -306,6 +313,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.checkThreadTimer=qt.QTimer()
             self.checkThreadTimer.connect('timeout()', self.onCheckSampling)
             self.checkThreadTimer.start(100)
+
+            self.pushButton_compute.setText('Sampling ...')
+            #self.pushButton_compute.Disable(True)
             return
 
         #computing
@@ -478,9 +488,43 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.logic.stats.Set('B',fileB_path)
 
             #computing
+            self.pushButton_compute.setText("Computing ...")
             self.logic.computeStats(nb_bins,signed,correspondence)
-            
+
+            self.checkThreadTimer=qt.QTimer()
+            self.checkThreadTimer.connect('timeout()', self.onCheckCompute)
+            self.checkThreadTimer.start(100)
+            return
+
+    def onCheckCompute(self):
+        state=self.logic.cli_stats.GetStatusString()
+        
+        if state=='Running'or state=='Scheduled' :
+            print('Computing:',state)
+        else:
+
+            print('Computing:',state)
+            self.checkThreadTimer.stop()
+            self.checkThreadTimer.disconnect('timeout()', self.onCheckCompute)
+
+            results_file=self.logic.cli_param["outputStatisticsJSON"]
+            #print(results_file)
+            with open(results_file,'r') as json_data:
+                results = json.load(json_data)
+
+
+            # with open(results_file, 'rb') as csvfile:
+            #     reader=csv.DictReader(csvfile)
+            #     self.logic.stats_dict=dict()
+            self.logic.stats_dict=dict()
+            for res in results:
+                for key,value in res.items():
+                    if type(value)==type(list()):
+                        res[key]=np.array(value)
+                self.logic.stats_dict[res['mode']]=res
+
             #Config interface
+            self.pushButton_compute.setText("Compute")
             self.pushButton_save.setEnabled(True)
 
             self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
@@ -496,14 +540,16 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
 
             #show results
-            self.logic.show('A',color=(1,0,0))
-            self.logic.show('B',color=(0,0,1))
+            self.logic.show('A',self.logic.fileA_out,color=(1,0,0))
+            self.logic.show('B',self.logic.fileB_out,color=(0,0,1))
             self.onTranslation(self.horizontalSlider_translation.value)
             self.onModeChanged(mode)
 
             #show plot
             self.logic.generate2DVisualisationNodes(mode)
             print('Done!')
+
+
 
     #------------------------------------------------------#    
     #                  Utility Functions                   #
@@ -554,7 +600,22 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     # if correspondence = True and signed = False, only one mode is computed (A<->B)
     def computeStats(self,nb_bins,signed,correspondence):
 
-        self.stats_dict=self.stats.ComputeValues(signed=signed,bins=nb_bins,correspondence=correspondence)
+        shapestats = slicer.modules.shapestatistics
+
+        fileA_path=self.fileA_out
+        fileB_path=self.fileB_out
+
+        self.cli_param = {}
+        self.cli_param["inputShapeA"] = fileA_path
+        self.cli_param["inputShapeB"] = fileB_path
+        self.cli_param["NumberOfBins"] = nb_bins
+        self.cli_param["Signed"]=signed
+        self.cli_param["Correspondence"]=correspondence
+        self.cli_param["outputStatisticsJSON"]=slicer.app.temporaryPath + '/SDA_statistics_result.json'
+        self.cli_stats=slicer.cli.run(shapestats, None, self.cli_param, wait_for_completion=False)
+
+        
+
         
     #function to generate results Qlabels
     #return an array of array containing the Qlabels to show in function of the desired mode.
@@ -762,14 +823,21 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #function to show in slicer mrml scene the shape identified by ID
     #the color parameter define the color of the shape
     #shape is translated in the x axis by posX
-    def show(self,ID,color=(1,1,1),posX=0):
+    def show(self,ID,file,color=(1,1,1),posX=0):
+        reader=vtk.vtkPolyDataReader()
+        reader.SetFileName(file)
+        reader.Update()
+        polydata=reader.GetOutput()
+
         if ID == 'A':
             name=self.shapeA_name
+            self.polydata_A=polydata
         if ID == 'B':
             name=self.shapeB_name
+            self.polydata_B=polydata
 
         self.delete3DVisualisationNodes(name)
-        polydata = self.stats.getPolydata(ID)
+        
         self.autoOrientNormals(polydata)
         self.generate3DVisualisationNode(polydata,name,color=color,initial_pos_x=posX)
         self.setModelNodeLUT(name)
@@ -851,11 +919,11 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
 
     #use the polydata boundaries to compute the X axis range
     def getXRange(self):
-        polydata = self.stats.getPolydata('A')
+        polydata = self.polydata_A
         boundsA=polydata.GetBounds()
         rangeA=boundsA[1]-boundsA[2]
 
-        polydata = self.stats.getPolydata('B')
+        polydata = self.polydata_B
         boundsB=polydata.GetBounds()
         rangeB=boundsB[1]-boundsB[2]
 
@@ -965,7 +1033,12 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         distance=self.generateVTKFloatArrayFromNumpy(distance)
         distance.SetName("Distance")
 
-        polydata=self.stats.getPolydata(shape)
+        if shape =='A':
+            polydata = self.polydata_A
+        else:
+            polydata = self.polydata_B
+
+        
         polydata.GetPointData().SetScalars(distance)
         polydata.GetPointData().Modified()
 
@@ -984,6 +1057,7 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     def disableAllScalarViews(self):
         self.disableScalarView(self.shapeA_name)
         self.disableScalarView(self.shapeB_name)
+
 
     #------------------------------------------------------#    
     #           LinearSubdivision cli Functions            #
@@ -1012,7 +1086,6 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         self.eval_paramB["subdivisions"] = sampling_level
         self.samplingB=slicer.cli.run(sampler, None, self.eval_paramB, wait_for_completion=False)
 
-        
 
     #------------------------------------------------------#    
     #                  Utility Functions                   #
@@ -1047,6 +1120,7 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         vtk_float = vtk.vtkFloatArray()
         vtk_float.SetNumberOfComponents(1)
         for i in range(size):
+            
             vtk_float.InsertNextTuple([np_array[i]])
         return vtk_float
 

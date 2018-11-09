@@ -22,7 +22,7 @@
       <name>inputShapeB</name>
       <label>Input Shape B</label>
       <channel>input</channel>
-      <index>B</index>
+      <index>1</index>
       <description>Input Shape B</description>
     </file>
   </parameters>
@@ -34,16 +34,30 @@
       <name>NumberOfBins</name>
       <label>Number of bins</label>
       <longflag>--bins</longflag>
-      <channel>options</channel>
       <default>256</default>
       <description><![CDATA[Define the number of bins to compute the histograms.]]></description>
     </integer>
-    <file fileExtensions=".csv">
-      <name>outputStatisticsCSV</name>
-      <label>Output Statistics</label>
+
+    <boolean>
+      <name>Signed</name>
+      <label>Signed distance</label>
+      <longflag>--signed</longflag>
+      <description><![CDATA[Define Specify if signed distance should be computed.]]></description>
+    </boolean>
+
+    <boolean>
+      <name>Correspondence</name>
+      <label>Correspondence between points</label>
+      <longflag>--correspondence</longflag>
+      <description><![CDATA[Define Specify if a correspondence between point should be used.]]></description>
+    </boolean>
+
+    <file fileExtensions=".json">
+      <name>outputStatisticsJSON</name>
+      <label>Output Statistics JSON file</label>
       <longflag>--save</longflag>
       <channel>output</channel>
-      <description><![CDATA[Output Statistics]]></description>
+      <description><![CDATA[Output Statistics (JSON File)]]></description>
     </file>
 
   </parameters>
