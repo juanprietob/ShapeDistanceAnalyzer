@@ -245,6 +245,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.disconnectWidget()
         self.defaultConfigWidget()
         self.connectWidget()
+        self.logic.generateLUT()
 
     #Action to do when file A is setted
     def onLoadFileA(self,fileA_path):
