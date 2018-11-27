@@ -77,6 +77,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
         #mrmlScene observers
         slicer.mrmlScene.AddObserver(slicer.mrmlScene.EndCloseEvent, self.onCloseScene)
+        
+        if not os.path.exists(slicer.app.temporaryPath):            
+            os.path.mkdirs(slicer.app.temporaryPath)
 
     #get all needed widget from the .ui file that describe the module interface
     def getWidgets(self):
@@ -612,7 +615,8 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         self.cli_param["NumberOfBins"] = nb_bins
         self.cli_param["Signed"]=signed
         self.cli_param["Correspondence"]=correspondence
-        self.cli_param["outputStatisticsJSON"]=slicer.app.temporaryPath + '/SDA_statistics_result.json'
+
+        self.cli_param["outputStatisticsJSON"]= os.path.join(slicer.app.temporaryPath, 'SDA_statistics_result.json')
         self.cli_stats=slicer.cli.run(shapestats, None, self.cli_param, wait_for_completion=False)
 
         

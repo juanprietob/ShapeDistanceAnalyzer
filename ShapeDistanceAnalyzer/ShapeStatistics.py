@@ -5,7 +5,7 @@ import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 #import sys
 #sys.path.append('Resources/LinearSubdivisionFilter')
-import LinearSubdivisionFilter
+#import LinearSubdivisionFilter
 
 import csv
 import json
