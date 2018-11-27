@@ -1,0 +1,53 @@
+<?xml version="1.2" encoding="utf-8"?>
+<executable>
+	<title>
+		LinearSubdivision
+	</title>
+	<description>
+		This command line perform the linear subdivision of a surface contained in a .vtk file.
+	</description>
+	<version>1.0</version>
+	<documentation-url></documentation-url>
+	<license></license>
+	<contributor>
+		Mateo Lopez(UNC)
+	</contributor>
+	<acknowledgements></acknowledgements>
+
+	<parameters>
+		<label>Subdivision Filter Parameters</label>
+    	<description>Parameters for the linear subdivision filter</description>
+		<integer>
+		      <name>subdivisions</name>
+		      <flag>s</flag>
+		      <longflag>subdivisions</longflag>
+		      <description>The Number of subdivision wanted.</description>
+		      <label>Integer Parameter</label>
+		      <default>1</default>
+	    </integer>
+	</parameters>
+
+	<parameters>
+		<label>IO</label>
+    	<description>Input/output parameters</description>
+		<file fileExtensions=".vtk">
+			<name>input</name>
+			<longflag>--input</longflag>
+			<label>Input File</label>
+			<flag>i</flag>
+			<description>Mesh to subdivide</description>
+			<channel>input</channel>
+			<description><![CDATA[Input file]]></description>
+		</file> 
+
+		<file fileExtensions=".vtk">
+			<name >output</name>
+			<flag>o</flag>
+			<longflag>--output</longflag>
+			<label>Output File</label>
+			<description>Mesh that will be created</description>
+			<channel>output</channel>
+			<description><![CDATA[Output file]]></description>
+		</file>
+	</parameters>
+</executable>
