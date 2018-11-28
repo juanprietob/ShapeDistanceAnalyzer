@@ -13,12 +13,14 @@
 #include "vtkIntArray.h"
 #include "vtkCellData.h"
 #include "vtkCellArray.h"
+#include "vtkCellIterator.h"
 #include "vtkEdgeTable.h"
 #include "vtkIdList.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include <string>
+#include <sstream>
 
 #include "vtkCleanPolyData.h"
 
@@ -30,7 +32,7 @@ int vtkLinearSubdivisionFilter2::RequestData(vtkInformation * request,
                                                 vtkInformationVector ** inputVector, 
                                                 vtkInformationVector * outputVector) 
 {
-  if (!vtkInterpolatingSubdivisionFilter::RequestData(request, inputVector,
+  if (!this->vtkSubdivisionFilterRequestData(request, inputVector,
                                                 outputVector))
   {
     return 0;
@@ -293,3 +295,62 @@ int vtkLinearSubdivisionFilter2::GenerateSubdivisionPoints (vtkPolyData *inputDS
 }
 
 
+
+
+int vtkLinearSubdivisionFilter2::vtkSubdivisionFilterRequestData(
+  vtkInformation *vtkNotUsed(request),
+  vtkInformationVector **inputVector,
+  vtkInformationVector *vtkNotUsed(outputVector))
+{
+  // validate the input
+  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+
+  // get the input
+  vtkPolyData *input = vtkPolyData::SafeDownCast(
+    inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  if (!input)
+  {
+    return 0;
+  }
+
+  vtkIdType numCells, numPts;
+  numPts=input->GetNumberOfPoints();
+  numCells=input->GetNumberOfCells();
+
+  if (numPts < 1 || numCells < 1)
+  {
+    vtkErrorMacro(<<"No data to subdivide");
+    return 0;
+  }
+
+
+  std::map<int,int> badCellTypes;
+  bool hasOnlyTris = true;
+  vtkCellIterator *it = input->NewCellIterator();
+  for (it->InitTraversal(); !it->IsDoneWithTraversal(); it->GoToNextCell())
+  {
+  if (it->GetCellType() != VTK_TRIANGLE)
+    {
+      hasOnlyTris = false;
+      badCellTypes[it->GetCellType()] += 1;
+      continue;
+    }
+  }
+  it->Delete();
+
+  if (!hasOnlyTris)
+  {
+    std::ostringstream msg;
+    std::map <int, int>::iterator cit;
+    for (cit = badCellTypes.begin(); cit != badCellTypes.end(); ++cit)
+    {
+      msg << "Cell type: " << cit->first << " Count: " << cit->second << "\n";
+    }
+    vtkErrorMacro(<< this->GetClassName() << " only operates on triangles, but "
+                  "this data set has other cell types present.\n"
+                  << msg.str());
+    return 0;
+  }
+  
+  return 1;
+}
