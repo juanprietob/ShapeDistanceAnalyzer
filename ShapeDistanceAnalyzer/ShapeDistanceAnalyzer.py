@@ -257,6 +257,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.current_file_A=fileA_path
             self.logic.stats.Set('A',fileA_path)
             self.logic.show('A',self.current_file_A,color=(1,0,0))
+            self.AddDisplayNodeChangedObserver('Shape A')
             print('Done!')
 
             if self.logic.stats.IsReady():
@@ -277,6 +278,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.current_file_B=fileB_path
             self.logic.stats.Set('B',fileB_path)
             self.logic.show('B',self.current_file_B,color=(0,0,1))
+            self.AddDisplayNodeChangedObserver('Shape B')
 
             print('Done!')
 
@@ -533,6 +535,8 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             #show results
             self.logic.show('A',self.logic.fileA_out,color=(1,0,0))
             self.logic.show('B',self.logic.fileB_out,color=(0,0,1))
+            self.AddDisplayNodeChangedObserver('Shape A')
+            self.AddDisplayNodeChangedObserver('Shape B')
             self.onTranslation(self.horizontalSlider_translation.value)
             self.onModeChanged(mode)
 
@@ -557,6 +561,25 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
                 pass
         self.result_labels=[[]]
 
+    def AddDisplayNodeChangedObserver(self,name):
+        shapenode=slicer.mrmlScene.GetFirstNodeByName(name)
+        #Observer
+        r=shapenode.AddObserver(shapenode.DisplayModifiedEvent, self.onDisplayNodeModified)
+
+
+    def onDisplayNodeModified(self,obj,event):
+        colorNode = obj.GetDisplayNode().GetColorNode()
+        lookuptable=colorNode.GetLookupTable()
+        IdRange=lookuptable.GetTableRange()
+
+        minColor=[0,0,0,0]
+        colorNode.GetColor(int(IdRange[0]),minColor)
+
+        maxColor=[0,0,0,0]
+        colorNode.GetColor(int(IdRange[1]),maxColor)
+
+        self.label_colorMax.setStyleSheet("QLabel{background-color:rgb("+str(int(minColor[0]*255))+","+str(int(minColor[1]*255))+","+str(int(minColor[2]*255))+");}")
+        self.label_colorMin.setStyleSheet("QLabel{background-color:rgb("+str(int(maxColor[0]*255))+","+str(int(maxColor[1]*255))+","+str(int(maxColor[2]*255))+");}")
 
 ########################################################################################
 #                                   LOGIC CLASS                                        #
@@ -843,6 +866,7 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         shape_node = slicer.vtkMRMLModelNode()
         shape_node.SetAndObservePolyData(polydata)
         shape_node.SetName(name)
+
         #create display node
         model_display = slicer.vtkMRMLModelDisplayNode()
         model_display.SetColor(color[0],color[1],color[2]) 
@@ -865,6 +889,12 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         #Link nodes
         shape_node.SetAndObserveTransformNodeID(transform_node.GetID())
         shape_node.SetAndObserveDisplayNodeID(model_display.GetID())
+
+
+
+
+
+
 
     #function to delete a model node and his associated model display node
     #using the name used during their creation
