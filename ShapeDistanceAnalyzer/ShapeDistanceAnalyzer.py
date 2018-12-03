@@ -130,9 +130,9 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         self.comboBox_correspondence.addItem('Yes')
         self.comboBox_correspondence.addItem('No')
 
-        self.spinBox_sampling.setMinimum(1)
+        self.spinBox_sampling.setMinimum(0)
         self.spinBox_sampling.setMaximum(50)
-        self.spinBox_sampling.setValue(1)
+        self.spinBox_sampling.setValue(0)
 
         #Translation
         self.horizontalSlider_translation.setMinimum(0)
@@ -293,22 +293,10 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
     #Action to do when compute button is pushed
     def onCompute(self):
         print('Computing ...')
-
-        #Getting parameters
-        nb_bins=self.spinBox_bins.value
-
-        signed=False
-        if self.comboBox_distanceType.currentText == 'Signed Distance':
-            signed=True
-
-        correspondence=False
-        if self.comboBox_correspondence.currentText == 'Yes':
-            correspondence=True
-
         sampling_level=self.spinBox_sampling.value
 
         #sampling
-        if sampling_level!=0:
+        if sampling_level>0:
             fileA=self.pathLineEdit_fileA.currentPath
             fileB=self.pathLineEdit_fileB.currentPath
 
@@ -322,33 +310,32 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             #self.pushButton_compute.Disable(True)
             return
 
+        #Getting parameters
+        nb_bins=self.spinBox_bins.value
+
+        signed=False
+        if self.comboBox_distanceType.currentText == 'Signed Distance':
+            signed=True
+
+        correspondence=False
+        if self.comboBox_correspondence.currentText == 'Yes':
+            correspondence=True
+
+
+        self.logic.fileA_out=self.pathLineEdit_fileA.currentPath
+        self.logic.fileB_out=self.pathLineEdit_fileB.currentPath
+
+        #self.logic.stats.Set('A',fileA_path)
+        #self.logic.stats.Set('B',fileB_path)
+
         #computing
+        self.pushButton_compute.setText("Computing ...")
         self.logic.computeStats(nb_bins,signed,correspondence)
-        
-        #Config interface
-        self.pushButton_save.setEnabled(True)
 
-        self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
-        self.comboBox_mode.clear()
-        modes=self.logic.stats_dict.keys()
-        mode=modes[0]
-        for i in modes:
-            self.comboBox_mode.addItem(i)
-        if len(modes)==1:
-            self.comboBox_mode.setDisabled(True)
-        else:
-            self.comboBox_mode.setEnabled(True)
-        self.comboBox_mode.connect('currentIndexChanged(const QString)',self.onModeChanged)
-
-        #show results
-        self.logic.show('A',color=(1,0,0))
-        self.logic.show('B',color=(0,0,1))
-        self.onTranslation(self.horizontalSlider_translation.value)
-        self.onModeChanged(mode)
-
-        #show plot
-        self.logic.generate2DVisualisationNodes(mode)
-        print('Done!')
+        self.checkThreadTimer=qt.QTimer()
+        self.checkThreadTimer.connect('timeout()', self.onCheckCompute)
+        self.checkThreadTimer.start(100)
+        return
 
     #Action to do when the mode change
     def onModeChanged(self,mode):
