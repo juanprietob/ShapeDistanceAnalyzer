@@ -1042,11 +1042,11 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
             shapenode.Modified()
 
     def setScalarRange(self,mini,maxi):
-        node = slicer.mrmlScene.GetFirstNodeByName("Display "+self.shapeA_name)
-        node.SetScalarRange(mini,maxi)
+        node = slicer.mrmlScene.GetFirstNodeByName(self.shapeA_name)
+        node.GetDisplayNode().SetScalarRange(mini,maxi)
 
-        node = slicer.mrmlScene.GetFirstNodeByName("Display "+self.shapeB_name)
-        node.SetScalarRange(mini,maxi)
+        node = slicer.mrmlScene.GetFirstNodeByName(self.shapeB_name)
+        node.GetDisplayNode().SetScalarRange(mini,maxi)
 
     #take a numpy array distance, convert it in a vtkfloat array 
     #and set the scalars of polydata with this array 
