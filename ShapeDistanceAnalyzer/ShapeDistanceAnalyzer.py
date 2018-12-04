@@ -544,7 +544,20 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.logic.generate2DVisualisationNodes(mode)
             print('Done!')
 
+    def onDisplayNodeModified(self,obj,event):
+        colorNode = obj.GetDisplayNode().GetColorNode()
+        if colorNode is not None:
+            lookuptable=colorNode.GetLookupTable()
+            IdRange=lookuptable.GetTableRange()
 
+            minColor=[0,0,0,0]
+            colorNode.GetColor(int(IdRange[0]),minColor)
+
+            maxColor=[0,0,0,0]
+            colorNode.GetColor(int(IdRange[1]),maxColor)
+
+            self.label_colorMax.setStyleSheet("QLabel{background-color:rgb("+str(int(minColor[0]*255))+","+str(int(minColor[1]*255))+","+str(int(minColor[2]*255))+");}")
+            self.label_colorMin.setStyleSheet("QLabel{background-color:rgb("+str(int(maxColor[0]*255))+","+str(int(maxColor[1]*255))+","+str(int(maxColor[2]*255))+");}")
 
     #------------------------------------------------------#    
     #                  Utility Functions                   #
@@ -566,20 +579,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
         #Observer
         r=shapenode.AddObserver(shapenode.DisplayModifiedEvent, self.onDisplayNodeModified)
 
-
-    def onDisplayNodeModified(self,obj,event):
-        colorNode = obj.GetDisplayNode().GetColorNode()
-        lookuptable=colorNode.GetLookupTable()
-        IdRange=lookuptable.GetTableRange()
-
-        minColor=[0,0,0,0]
-        colorNode.GetColor(int(IdRange[0]),minColor)
-
-        maxColor=[0,0,0,0]
-        colorNode.GetColor(int(IdRange[1]),maxColor)
-
-        self.label_colorMax.setStyleSheet("QLabel{background-color:rgb("+str(int(minColor[0]*255))+","+str(int(minColor[1]*255))+","+str(int(minColor[2]*255))+");}")
-        self.label_colorMin.setStyleSheet("QLabel{background-color:rgb("+str(int(maxColor[0]*255))+","+str(int(maxColor[1]*255))+","+str(int(maxColor[2]*255))+");}")
+    
 
 ########################################################################################
 #                                   LOGIC CLASS                                        #
@@ -928,16 +928,18 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         #translation shape A
         if shape == 'A':
             transform_node = slicer.mrmlScene.GetFirstNodeByName("Translation "+self.shapeA_name)
-            transform=vtk.vtkTransform()
-            transform.Translate(value,0,0)
-            transform_node.SetAndObserveTransformToParent(transform)
+            if transform_node is not None:
+                transform=vtk.vtkTransform()
+                transform.Translate(value,0,0)
+                transform_node.SetAndObserveTransformToParent(transform)
 
         #translation shape B
         if shape == 'B':
             transform_node = slicer.mrmlScene.GetFirstNodeByName("Translation "+self.shapeB_name)
-            transform=vtk.vtkTransform()
-            transform.Translate(-value,0,0)
-            transform_node.SetAndObserveTransformToParent(transform)
+            if transform_node is not None:
+                transform=vtk.vtkTransform()
+                transform.Translate(-value,0,0)
+                transform_node.SetAndObserveTransformToParent(transform)
 
     #use the polydata boundaries to compute the X axis range
     def getXRange(self):
@@ -1073,7 +1075,8 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
     #disable scalar view on the model node created with the name parameter
     def disableScalarView(self,name):
         shape_node=slicer.mrmlScene.GetFirstNodeByName(name)
-        shape_node.GetDisplayNode().SetScalarVisibility(0)
+        if shape_node is not None:
+            shape_node.GetDisplayNode().SetScalarVisibility(0)
 
     #disable scalar view on shape A and B
     def disableAllScalarViews(self):
