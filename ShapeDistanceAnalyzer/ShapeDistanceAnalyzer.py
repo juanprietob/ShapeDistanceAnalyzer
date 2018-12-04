@@ -551,10 +551,10 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             IdRange=lookuptable.GetTableRange()
 
             minColor=[0,0,0,0]
-            colorNode.GetColor(int(IdRange[0]),minColor)
+            colorNode.GetColor(int(IdRange[1]),minColor)
 
             maxColor=[0,0,0,0]
-            colorNode.GetColor(int(IdRange[1]),maxColor)
+            colorNode.GetColor(int(IdRange[0]),maxColor)
 
             self.label_colorMax.setStyleSheet("QLabel{background-color:rgb("+str(int(minColor[0]*255))+","+str(int(minColor[1]*255))+","+str(int(minColor[2]*255))+");}")
             self.label_colorMin.setStyleSheet("QLabel{background-color:rgb("+str(int(maxColor[0]*255))+","+str(int(maxColor[1]*255))+","+str(int(maxColor[2]*255))+");}")
