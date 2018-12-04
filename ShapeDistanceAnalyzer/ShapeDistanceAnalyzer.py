@@ -209,7 +209,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
     #Activate the interface when two files are loaded
     def activateInterface(self):
-        if self.logic.stats.IsCorrespondencePossible():
+        if self.logic.IsCorrespondencePossible(self.pathLineEdit_fileA.currentPath,self.pathLineEdit_fileB.currentPath):
             index=self.comboBox_correspondence.findText('Yes')
             self.comboBox_correspondence.setCurrentIndex(index)
             self.comboBox_correspondence.setEnabled(True)
@@ -1154,6 +1154,19 @@ class ShapeDistanceAnalyzerLogic(ScriptedLoadableModuleLogic):
         node = slicer.mrmlScene.GetFirstNodeByName(name)
         if node is not None:
             slicer.mrmlScene.RemoveNode(node)
+
+    def IsCorrespondencePossible(self,pathA,pathB):
+        readerA=vtk.vtkPolyDataReader()
+        readerA.SetFileName(pathA)
+        readerA.Update()
+        nb_points_A=readerA.GetOutput().GetPoints().GetNumberOfPoints()
+
+        readerB=vtk.vtkPolyDataReader()
+        readerB.SetFileName(pathB)
+        readerB.Update()
+        nb_points_B=readerB.GetOutput().GetPoints().GetNumberOfPoints()
+
+        return nb_points_A==nb_points_B
             
 
 ########################################################################################
