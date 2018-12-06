@@ -309,6 +309,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
             self.checkThreadTimer.start(100)
 
             self.pushButton_compute.setText('Sampling ...')
+            self.pushButton_compute.setDisable(True)
             #self.pushButton_compute.Disable(True)
             return
 
@@ -332,6 +333,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
         #computing
         self.pushButton_compute.setText("Computing ...")
+        self.pushButton_compute.setDisable(True)
         self.logic.computeStats(nb_bins,signed,correspondence)
 
         self.checkThreadTimer=qt.QTimer()
@@ -518,6 +520,7 @@ class ShapeDistanceAnalyzerWidget(ScriptedLoadableModuleWidget):
 
             #Config interface
             self.pushButton_compute.setText("Compute")
+            self.pushButton_compute.setEnable(True)
             self.pushButton_save.setEnabled(True)
 
             self.comboBox_mode.disconnect('currentIndexChanged(const QString)',self.onModeChanged)
